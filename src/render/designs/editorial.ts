@@ -62,7 +62,7 @@ export const editorial: CardDesign = {
     drawFitText(ctx, data.title, cx, box.y + baseline(L.titleTop, TITLE) - 8, maxW, { family: SERIF, weight: 400, size: TITLE, style: 'italic' }, ink, 'center');
     drawFitText(
       ctx,
-      `${data.dateText}, ${data.timeText}`,
+      [`${data.dateText}, ${data.timeText}`, data.location].filter(Boolean).join(' · '),
       cx,
       box.y + baseline(L.dateTop, DATE),
       maxW,

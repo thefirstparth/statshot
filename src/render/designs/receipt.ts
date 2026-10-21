@@ -15,7 +15,8 @@ const SPARK_H = 56;
 const BARCODE_H = 84;
 
 function layout(data: CardData, opts: CardOptions) {
-  const stats = visibleStats(data, opts);
+  const stats: { label: string; value: string }[] = visibleStats(data, opts);
+  if (data.location) stats.push({ label: 'Place', value: data.location });
   const headerTop = EDGE + 30;
   const titleTop = headerTop + HEADER_H + 52;
   const sep1 = titleTop + TITLE * 1.2 + 28;
