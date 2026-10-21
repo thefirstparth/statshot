@@ -3,7 +3,7 @@ import { loadIcons } from './icons';
 import type { CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
 
 export const CARD_WIDTH = 920;
-export const STICKER_PAD = 48;
+export const STICKER_PAD = 32;
 const MIN_MARGIN = 64;
 
 export const SIZES: Record<Exclude<SizeKey, 'sticker'>, { w: number; h: number }> = {

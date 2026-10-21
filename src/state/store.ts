@@ -32,9 +32,9 @@ export const DEFAULT_FAVOURITES = ['summary', 'trace', 'pill', 'messages', 'hero
 export const DEFAULT_PREFS: Prefs = {
   designId: 'summary',
   favourites: DEFAULT_FAVOURITES,
-  background: 'solid',
+  background: 'transparent', // card only on clear: paste it onto a story or photo
   theme: 'dark',
-  size: 'story',
+  size: 'sticker',
   accent: null,
   stats: ['duration', 'energy', 'avgHr'],
   showGraph: true,

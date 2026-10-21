@@ -333,10 +333,10 @@ export function EditSheet({
         label="Size"
         value={prefs.size}
         options={[
+          { value: 'sticker', label: 'Card only' },
           { value: 'story', label: 'Story' },
           { value: 'post', label: 'Post' },
           { value: 'square', label: 'Square' },
-          { value: 'sticker', label: 'Card only' },
         ]}
         onChange={(size) => onChange({ size })}
       />
