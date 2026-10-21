@@ -2,7 +2,7 @@
 
 Statshot turns a workout export file (`.tcx`) into a good-looking share image for Instagram Stories, WhatsApp and the rest. Google Health (Fitbit Air) shows your workouts but can't share one as an image; it can only export a TCX file. Statshot reads that file in your browser, lets you pick from eight card designs, tweak them a little, and share or copy a PNG in one tap.
 
-**Live app:** https://statshot.example.com <!-- replace with your deployment URL -->
+**Live app:** https://statshot-five.vercel.app
 
 ## How to use it
 
