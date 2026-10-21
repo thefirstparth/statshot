@@ -17,7 +17,7 @@
   --radius: 18px;
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --bar-h: 76px;
+  --bar-h: 128px;
   color-scheme: light;
 }
 
