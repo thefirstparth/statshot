@@ -120,6 +120,15 @@ export const UI_ICONS = [
   'remove',
   'info',
   'code',
+  // Stat icons drawn on cards.
+  'timer',
+  'local_fire_department',
+  'favorite',
+  'ecg_heart',
+  'heart_minus',
+  'monitor_heart',
+  'route',
+  'schedule',
 ] as const;
 
 export const ICON_NAMES: string[] = [

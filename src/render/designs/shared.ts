@@ -1,5 +1,6 @@
-import { drawFitText, rgba, setFont, visibleStats, type FontSpec } from '../canvas';
-import type { CardDesign, StatItem } from '../types';
+import { drawFitText, mix, rgba, setFont, visibleStats, type FontSpec } from '../canvas';
+import { drawIconPath } from '../icons';
+import type { CardData, CardDesign, StatItem, StatKey } from '../types';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -106,4 +107,46 @@ export function placeholderDesign(id: string, name: string, blurb: string): Card
       });
     },
   };
+}
+
+/** Material Symbols icon per stat (filled variants exist for all of them). */
+export const STAT_ICONS: Record<StatKey, string> = {
+  duration: 'timer-fill',
+  energy: 'local_fire_department-fill',
+  avgHr: 'favorite-fill',
+  maxHr: 'ecg_heart-fill',
+  minHr: 'heart_minus-fill',
+  zoneMin: 'monitor_heart-fill',
+  distance: 'route-fill',
+  timeRange: 'schedule-fill',
+};
+
+/** Scalloped "cookie" sticker shape (12 soft lobes), centred on cx, cy. */
+export function cookiePath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, lobes = 12): void {
+  ctx.beginPath();
+  const steps = 192;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2 - Math.PI / 2;
+    const rr = r * (0.92 + 0.08 * Math.cos(a * lobes));
+    const x = cx + rr * Math.cos(a);
+    const y = cy + rr * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
+/** The sport glyph on a cookie sticker in its category colours. */
+export function drawSportBadge(ctx: CanvasRenderingContext2D, data: CardData, x: number, y: number, size: number, dark = false): void {
+  const c = data.sportColors;
+  cookiePath(ctx, x + size / 2, y + size / 2, size / 2);
+  ctx.fillStyle = dark ? mix(c.fg, '#000000', 0.35) : c.bg;
+  ctx.fill();
+  const g = size * 0.52;
+  drawIconPath(ctx, data.sportIcon, dark ? c.bg : c.fg, x + (size - g) / 2, y + (size - g) / 2, g);
+}
+
+/** "Tue 20 Oct · 02:02 · Smash Club" */
+export function metaLine(data: CardData, withTime = true): string {
+  return [`${data.weekday} ${data.shortDate}`, withTime ? data.timeText : '', data.location].filter(Boolean).join(' · ');
 }
