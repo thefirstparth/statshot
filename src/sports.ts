@@ -95,7 +95,7 @@ export const UI_ICONS = [
   'close',
   'search',
   'arrow_back',
-  'expand_more',
+  'keyboard_arrow_down',
   'chevron_right',
   'ios_share',
   'share',

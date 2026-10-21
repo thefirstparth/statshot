@@ -113,7 +113,7 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
           <div class="sheet-head">
             <h2>{title}</h2>
             <button type="button" class="icon-btn" onClick={close} aria-label="Close">
-              <Icon name="x" />
+              <Icon name="close" />
             </button>
           </div>
         </div>

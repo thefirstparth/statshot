@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'preact/hooks';
-import { customSportId, sportById, SPORTS } from '../sports';
+import { CATEGORY_NAMES, CATEGORY_ORDER, customSportId, isKnownSport, searchSports, sportById, SPORTS, type Sport } from '../sports';
 import { Icon } from './icon';
 import { Sheet } from './sheet';
+import { SportSticker } from './sticker';
 
 type Props = {
   currentId: string | null;
@@ -10,106 +11,83 @@ type Props = {
   onClose: () => void;
 };
 
+function Tile({ sport, on, onPick, big }: { sport: Sport; on: boolean; onPick: (id: string) => void; big?: boolean }) {
+  return (
+    <button type="button" class={`sport-tile${on ? ' is-on' : ''}`} aria-pressed={on} onClick={() => onPick(sport.id)}>
+      <SportSticker sport={sport} size={big ? 64 : 52} />
+      <span>{sport.name}</span>
+    </button>
+  );
+}
+
 export function SportSheet({ currentId, recent, onPick, onClose }: Props) {
   const [query, setQuery] = useState('');
-  const [customOpen, setCustomOpen] = useState(false);
-  const [custom, setCustom] = useState('');
+  const q = query.trim();
+  const results = useMemo(() => searchSports(q), [q]);
+  const recentSports = recent.filter(isKnownSport).map(sportById).slice(0, 6);
 
-  const q = query.trim().toLowerCase();
-  const list = useMemo(
-    () => (q ? SPORTS.filter((s) => s.name.toLowerCase().includes(q) || s.lower.toLowerCase().includes(q)) : SPORTS),
-    [q],
-  );
-  const recentSports = recent.map(sportById);
-
-  const useCustom = (name: string) => {
-    const trimmed = name.trim();
-    if (trimmed) onPick(customSportId(trimmed.slice(0, 40)));
+  const useCustom = () => {
+    if (q) onPick(customSportId(q));
   };
 
   return (
-    <Sheet title="Choose a sport" onClose={onClose} class="sheet-tall">
+    <Sheet title="What did you play?" onClose={onClose} class="sheet-tall sheet-sports">
       <div class="search">
         <Icon name="search" />
         <input
           type="search"
           class="input"
-          placeholder="Search sports"
+          placeholder="Search, or type your own"
           value={query}
           aria-label="Search sports"
+          enterKeyHint="done"
+          maxLength={40}
           onInput={(e) => setQuery((e.currentTarget as HTMLInputElement).value)}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
-              if (list.length > 0) onPick(list[0].id);
-              else useCustom(query);
+              if (results.length > 0 && q) onPick(results[0].id);
+              else useCustom();
             }
           }}
         />
       </div>
 
-      {!q && recentSports.length > 0 && (
-        <section class="sheet-section">
-          <h3 class="section-title">Recent</h3>
-          <div class="chip-row">
-            {recentSports.map((s) => (
-              <button key={s.id} type="button" class={`chip${s.id === currentId ? ' is-on' : ''}`} onClick={() => onPick(s.id)}>
-                <Icon name={s.icon} />
-                {s.name}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
-
-      <div class="sport-grid">
-        {list.map((s) => (
-          <button
-            key={s.id}
-            type="button"
-            class={`sport-tile${s.id === currentId ? ' is-on' : ''}`}
-            onClick={() => onPick(s.id)}
-          >
-            <Icon name={s.icon} class="icon-lg" />
-            <span>{s.name}</span>
+      {q ? (
+        <div class="sport-grid">
+          {results.map((s) => (
+            <Tile key={s.id} sport={s} on={s.id === currentId} onPick={onPick} />
+          ))}
+          <button type="button" class="sport-tile sport-tile-custom" onClick={useCustom}>
+            <span class="custom-badge">
+              <Icon name="edit" />
+            </span>
+            <span>Use “{q}”</span>
           </button>
-        ))}
-        {q && list.length === 0 && (
-          <button type="button" class="sport-tile sport-tile-wide" onClick={() => useCustom(query)}>
-            <Icon name="pencil" class="icon-lg" />
-            <span>Use “{query.trim()}”</span>
-          </button>
-        )}
-        {!customOpen && (
-          <button type="button" class="sport-tile" onClick={() => setCustomOpen(true)}>
-            <Icon name="pencil" class="icon-lg" />
-            <span>Custom name…</span>
-          </button>
-        )}
-      </div>
-
-      {customOpen && (
-        <form
-          class="custom-row"
-          onSubmit={(e) => {
-            e.preventDefault();
-            useCustom(custom);
-          }}
-        >
-          <input
-            class="input"
-            type="text"
-            maxLength={40}
-            placeholder="e.g. Bouldering"
-            aria-label="Custom sport name"
-            value={custom}
-            data-autofocus
-            onInput={(e) => setCustom((e.currentTarget as HTMLInputElement).value)}
-            ref={(el) => el?.focus()}
-          />
-          <button type="submit" class="btn btn-primary" disabled={!custom.trim()}>
-            Use
-          </button>
-        </form>
+        </div>
+      ) : (
+        <>
+          {recentSports.length > 0 && (
+            <section class="sheet-section sticker-shelf">
+              <h3 class="section-title">Used lately</h3>
+              <div class="sport-grid sport-grid-3">
+                {recentSports.map((s) => (
+                  <Tile key={s.id} sport={s} on={s.id === currentId} onPick={onPick} big />
+                ))}
+              </div>
+            </section>
+          )}
+          {CATEGORY_ORDER.map((cat) => (
+            <section key={cat} class="sheet-section">
+              <h3 class="section-title">{CATEGORY_NAMES[cat]}</h3>
+              <div class="sport-grid">
+                {SPORTS.filter((s) => s.cat === cat).map((s) => (
+                  <Tile key={s.id} sport={s} on={s.id === currentId} onPick={onPick} />
+                ))}
+              </div>
+            </section>
+          ))}
+          <p class="fine-print">Not listed? Type its name in the search box and tap “Use”.</p>
+        </>
       )}
     </Sheet>
   );

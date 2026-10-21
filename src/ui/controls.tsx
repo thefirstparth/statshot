@@ -1,3 +1,4 @@
+import { ACCENT_NAMES } from '../render/registry';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
@@ -95,7 +96,7 @@ export function Swatches({
             type="button"
             role="radio"
             aria-checked={c.toLowerCase() === value.toLowerCase()}
-            aria-label={c}
+            aria-label={ACCENT_NAMES[c.toUpperCase()] ?? c}
             class={`swatch${c.toLowerCase() === value.toLowerCase() ? ' is-on' : ''}`}
             style={{ '--swatch': c }}
             onClick={() => onChange(c)}
@@ -131,6 +132,8 @@ export function NumberField({
   useEffect(() => {
     setText((t) => (Number(t) === value || (t === '' && value === null) ? t : value === null ? '' : String(value)));
   }, [value]);
+  const n = Number(text);
+  const invalid = text !== '' && !(Number.isFinite(n) && n >= min && n <= max);
   return (
     <div class="field">
       <label class="field-label" for={id}>
@@ -153,10 +156,18 @@ export function NumberField({
             const n = Number(raw);
             if (Number.isFinite(n) && n >= min && n <= max) onChange(Math.round(n));
           }}
+          aria-invalid={invalid}
+          aria-describedby={invalid ? `${id}-err` : undefined}
         />
         {suffix && <span class="input-suffix">{suffix}</span>}
       </div>
-      {note && <p class="field-help">{note}</p>}
+      {invalid ? (
+        <p class="field-error" id={`${id}-err`}>
+          Enter a number from {min} to {max}.
+        </p>
+      ) : (
+        note && <p class="field-help">{note}</p>
+      )}
     </div>
   );
 }

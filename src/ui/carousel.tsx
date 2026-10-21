@@ -64,11 +64,12 @@ type Props = {
   size: SizeKey;
   ready: boolean;
   zonesLocked: boolean;
+  favourites: string[];
   onOpenSettings: () => void;
 };
 
 /** Horizontal scroll-snap carousel, one design per page, with peeking neighbours and dots. */
-export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, size, ready, zonesLocked, onOpenSettings }: Props) {
+export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, size, ready, zonesLocked, favourites, onOpenSettings }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState({ w: 0, h: 0 }); // carousel width, preview-area height
   const [visual, setVisual] = useState(activeIndex);
@@ -194,8 +195,8 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
                 >
                   {locked && (
                     <div class="lock-overlay">
-                      <Icon name="heart-rate-monitor" class="icon-lg" />
-                      <p>Add your age in Settings to see zones</p>
+                      <Icon name="monitor_heart" class="icon-lg" />
+                      <p>Add your resting heart rate and age in Settings to see zones</p>
                       <button type="button" class="btn btn-primary" onClick={onOpenSettings} tabIndex={current ? 0 : -1}>
                         Open settings
                       </button>
@@ -203,7 +204,10 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
                   )}
                 </CardPreview>
               </div>
-              <p class="design-name">{d.needsZones ? `${d.name} (est.)` : d.name}</p>
+              <p class="design-name">
+                {favourites.includes(d.id) && <Icon name="star-fill" class="name-star" />}
+                {d.name}
+              </p>
             </section>
           );
         })}
@@ -215,7 +219,7 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
             type="button"
             aria-current={i === visual ? 'true' : undefined}
             aria-label={`Show ${d.name}`}
-            class={`dot${i === visual ? ' is-on' : ''}`}
+            class={`dot${i === visual ? ' is-on' : ''}${favourites.includes(d.id) ? ' is-fav' : ''}`}
             onClick={() => goTo(i)}
           />
         ))}

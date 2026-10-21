@@ -14,24 +14,57 @@ import {
   shareBlob,
 } from './export/export';
 import { ensureFontsLoaded } from './render/fonts';
-import { availableDesigns, resolveAccent } from './render/registry';
+import { availableDesigns, designById, resolveAccent } from './render/registry';
 import { prepareCard, releaseCanvas, renderToNewCanvas } from './render/render';
 import type { CardDesign, CardOptions, StatKey } from './render/types';
-import { pushRecent, savePrefs, loadPrefs, clearPrefs, DEFAULT_PREFS, localeHour12, type Prefs } from './state/store';
+import {
+  clearPrefs,
+  DEFAULT_PREFS,
+  loadPrefs,
+  localeHour12,
+  MAX_FAVOURITES,
+  orderDesigns,
+  pushRecent,
+  savePrefs,
+  toggleFavourite,
+  type Prefs,
+} from './state/store';
+import { sampleWorkout } from './sample';
 import { slugify, sportById } from './sports';
 import { NOTE_NO_HR, parseTcx, type Workout } from './tcx/parse';
 import { formatDuration, isoDate } from './tcx/stats';
 import { Carousel } from './ui/carousel';
 import { EmptyState } from './ui/empty';
 import { Icon } from './ui/icon';
-import { CustomizeSheet, PickWorkoutSheet, SettingsSheet, WorkoutSheet } from './ui/sheets';
+import { DesignsSheet, EditSheet, PickWorkoutSheet, SettingsSheet, WorkoutSheet } from './ui/sheets';
 import { SportSheet } from './ui/sport-sheet';
+import { SportSticker } from './ui/sticker';
 
-type SheetName = 'pick' | 'sport' | 'workout' | 'settings' | 'customize';
+type SheetName = 'pick' | 'sport' | 'workout' | 'settings' | 'customize' | 'designs';
 
 const ERR_TOO_BIG = 'This file is too large to be a workout export.';
 const ERR_READ = "Couldn't read that file. Try saving it to Files first, then import it again.";
-const SHARE_CACHE = 'statshot-share';
+const SHARE_CACHE = 'sweatshot-share';
+
+/** Applies Auto/Light/Dark to the app chrome (cards have their own theme). */
+function useAppearance(appearance: Prefs['appearance']) {
+  useEffect(() => {
+    const root = document.documentElement;
+    const mq = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null;
+    const apply = () => {
+      const dark = appearance === 'dark' || (appearance === 'auto' && !!mq?.matches);
+      root.dataset.theme = dark ? 'dark' : 'light';
+      document.querySelector('meta[name="theme-color"]:not([media])')?.remove();
+      const meta = document.createElement('meta');
+      meta.name = 'theme-color';
+      meta.content = dark ? '#1C1612' : '#FFF4E4';
+      document.head.appendChild(meta);
+    };
+    apply();
+    mq?.addEventListener?.('change', apply);
+    return () => mq?.removeEventListener?.('change', apply);
+  }, [appearance]);
+}
 
 export function App() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
@@ -42,7 +75,7 @@ export function App() {
   const [pending, setPending] = useState<Workout[] | null>(null);
   const [sportId, setSportId] = useState('workout');
   const [title, setTitle] = useState('');
-  const [cardioLoad, setCardioLoad] = useState<number | null>(null);
+  const [location, setLocation] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -56,6 +89,8 @@ export function App() {
       return next;
     });
   }, []);
+
+  useAppearance(prefs.appearance);
 
   const showToast = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
   useEffect(() => {
@@ -86,7 +121,7 @@ export function App() {
     setPending(null);
     setWorkoutIdx(i);
     setTitle('');
-    setCardioLoad(null);
+    setLocation('');
     if (w.sourceSport === 'Running') {
       setSportId('running');
       setSheet(null);
@@ -167,7 +202,7 @@ export function App() {
 
   // Android share target: the service worker parks the shared file in the Cache API.
   useEffect(() => {
-    const url = new URL(location.href);
+    const url = new URL(window.location.href);
     if (url.searchParams.get('shared') !== '1') return;
     history.replaceState(null, '', url.pathname);
     if (!('caches' in window)) return;
@@ -191,22 +226,23 @@ export function App() {
             workout,
             sport: sportById(sportId),
             title,
-            cardioLoad,
+            location,
             hour12,
             distanceUnit: prefs.distanceUnit,
             age: prefs.age,
+            restingHr: prefs.restingHr,
             maxHrOverride: prefs.maxHrOverride,
           })
         : null,
-    [workout, sportId, title, cardioLoad, hour12, prefs.distanceUnit, prefs.age, prefs.maxHrOverride],
+    [workout, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride],
   );
   const hasHr = !!workout && workout.hr.length > 1;
-  const designs = useMemo(() => availableDesigns(hasHr), [hasHr]);
+  const designs = useMemo(() => orderDesigns(availableDesigns(hasHr), prefs.favourites), [hasHr, prefs.favourites]);
   const activeIndex = Math.max(0, designs.findIndex((d) => d.id === prefs.designId));
   const design = designs[activeIndex];
   const available = useMemo(() => (data ? availableStats(data) : []), [data]);
   const stats = useMemo<StatKey[]>(() => {
-    const s = prefs.stats.filter((k) => available.includes(k));
+    const s = [...new Set(prefs.stats.filter((k) => available.includes(k)))];
     return s.length > 0 ? s : ['duration'];
   }, [prefs.stats, available]);
 
@@ -222,15 +258,15 @@ export function App() {
     [prefs.theme, prefs.background, prefs.accent, prefs.showLogo, prefs.showGraph, stats, hasHr],
   );
 
-  const zonesLocked = !!data && data.zoneMinutes === null;
+  const zonesLocked = !!data && data.zones === null;
   const exportBlocked = !data || (zonesLocked && !!design.needsZones);
   const opts = optsFor(design);
   const exportKey = data
-    ? JSON.stringify([design.id, opts, prefs.size, workout?.start.iso, sportId, title, cardioLoad, hour12, prefs.distanceUnit, prefs.age, prefs.maxHrOverride])
+    ? JSON.stringify([design.id, opts, prefs.size, workout?.start.iso, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride])
     : '';
   const filename = workout
     ? exportFilename(slugify(sport.id.startsWith('custom:') ? sport.name : sport.id), isoDate(workout.start))
-    : 'statshot.png';
+    : 'sweatshot.png';
 
   // Pre-render the PNG once options settle, so Share can use it inside the click handler.
   useEffect(() => {
@@ -260,18 +296,31 @@ export function App() {
   const shareFiles = useMemo(canShareFiles, []);
   const copyImages = useMemo(canCopyImages, []);
 
-  /** Click handler: no awaited work before navigator.share when the cache is fresh. */
-  const onShare = () => {
-    if (!data || exportBlocked) return;
+  /** The PNG for the current options: cached, or rendered synchronously right now. */
+  const currentBlob = (): Blob => {
     let blob = cachedBlob(exportKey);
     if (!blob) {
-      const canvas = renderToNewCanvas(design, data, opts, prefs.size);
+      const canvas = renderToNewCanvas(design, data!, opts, prefs.size);
       blob = canvasToBlobSync(canvas);
       releaseCanvas(canvas);
       setCachedBlob(exportKey, blob);
     }
+    return blob;
+  };
+
+  const onDownload = () => {
+    if (!data || exportBlocked) return;
+    downloadBlob(currentBlob(), filename);
+    showToast('Image saved to your downloads.');
+  };
+
+  /** Click handler: no awaited work before navigator.share when the cache is fresh. */
+  const onShare = () => {
+    if (!data || exportBlocked) return;
+    const blob = currentBlob();
     if (!shareFiles) {
       downloadBlob(blob, filename);
+      showToast('Image saved to your downloads.');
       return;
     }
     const png = blob;
@@ -296,7 +345,7 @@ export function App() {
           return canvasToBlob(canvas).finally(() => releaseCanvas(canvas));
         });
     copyBlob(blob).then(
-      () => showToast('Copied — paste into your story as a sticker'),
+      () => showToast('Copied. Paste it into your story or chat.'),
       () => showToast("Couldn't copy the image. Try Share instead."),
     );
   };
@@ -325,9 +374,23 @@ export function App() {
     />
   );
 
+  const onSample = () => {
+    setError(null);
+    selectWorkout([sampleWorkout()], 0);
+    setSportId('pickleball');
+    setSheet(null);
+    showToast('This is a made-up sample. Open your own file any time.');
+  };
+
+  const onStar = (id: string) => {
+    const next = toggleFavourite(prefs.favourites, id);
+    if (!next) return showToast(`You can star up to ${MAX_FAVOURITES}. Unstar one first.`);
+    updatePrefs({ favourites: next });
+  };
+
   const dropOverlay = dragging && (
     <div class="drop-overlay" aria-hidden="true">
-      <Icon name="file-import" class="icon-lg" />
+      <Icon name="upload_file" class="icon-lg" />
       <p>Drop your workout file</p>
     </div>
   );
@@ -351,12 +414,27 @@ export function App() {
     </div>
   );
 
+  const settingsSheet = sheet === 'settings' && (
+    <SettingsSheet
+      prefs={prefs}
+      hour12={hour12}
+      onChange={updatePrefs}
+      onReset={() => {
+        clearPrefs();
+        setPrefs({ ...DEFAULT_PREFS });
+        showToast('Settings reset');
+      }}
+      onClose={() => setSheet(null)}
+    />
+  );
+
   if (!workouts || !data || !workout) {
     return (
       <>
-        <EmptyState error={error} onImport={openPicker} />
+        <EmptyState error={error} onImport={openPicker} onSample={onSample} onSettings={() => setSheet('settings')} />
         {fileInputEl}
         {pickSheet}
+        {settingsSheet}
         {dropOverlay}
         {toastEl}
       </>
@@ -364,22 +442,27 @@ export function App() {
   }
 
   const customizing = sheet === 'customize';
-  const summary = `${data.title} · ${data.shortDate} · ${formatDuration(workout.durationSec)}`;
+  const summary = `${data.shortDate} · ${formatDuration(workout.durationSec)}`;
+  const starred = prefs.favourites.includes(design.id);
+  const lockedFor = (d: CardDesign) => zonesLocked && !!d.needsZones;
 
   return (
     <>
       <div class={`app${customizing ? ' is-customizing' : ''}`} inert={sheet !== null && !customizing}>
         <header class="topbar">
-          <button type="button" class="pill" onClick={() => setSheet('workout')} aria-label={`Workout: ${summary}. Edit`}>
-            <Icon name={sport.icon} />
-            <span class="pill-text">{summary}</span>
-            <Icon name="chevron-down" class="pill-chevron" />
+          <button type="button" class="pill" onClick={() => setSheet('workout')} aria-label={`${data.title}, ${summary}. Edit workout details`}>
+            <SportSticker sport={sport} size={36} />
+            <span class="pill-main">
+              <span class="pill-title">{data.title}</span>
+              <span class="pill-text">{summary}</span>
+            </span>
+            <Icon name="edit" class="pill-chevron" />
           </button>
           <button type="button" class="icon-btn" onClick={() => setSheet('settings')} aria-label="Settings">
-            <Icon name="settings" />
+            <Icon name="settings-fill" />
           </button>
         </header>
-        {!hasHr && <p class="note">{NOTE_NO_HR}</p>}
+        {!hasHr && <p class="note">{NOTE_NO_HR} Heart-rate designs are hidden.</p>}
 
         <main class="stage" inert={customizing}>
           <Carousel
@@ -391,26 +474,39 @@ export function App() {
             size={prefs.size}
             ready={fontsReady}
             zonesLocked={zonesLocked}
+            favourites={prefs.favourites}
             onOpenSettings={() => setSheet('settings')}
           />
         </main>
 
-        <div class="customize-row">
+        <div class="design-bar">
+          <button type="button" class={`star-btn${starred ? ' is-on' : ''}`} aria-pressed={starred} aria-label={starred ? `Unstar ${design.name}` : `Star ${design.name} as a favourite`} onClick={() => onStar(design.id)}>
+            <Icon name={starred ? 'star-fill' : 'star'} />
+          </button>
+          <button type="button" class="btn btn-ghost" onClick={() => setSheet('designs')}>
+            <Icon name="grid_view" />
+            Designs
+          </button>
           <button type="button" class="btn btn-ghost" onClick={() => setSheet('customize')}>
-            <Icon name="adjustments-horizontal" />
-            Customize
+            <Icon name="palette" />
+            Numbers & look
           </button>
         </div>
 
-        <nav class="action-bar" aria-label="Export">
+        <nav class="action-bar" aria-label="Save or share">
           <button type="button" class="btn btn-primary btn-share" onClick={onShare} disabled={exportBlocked}>
-            <Icon name={shareFiles ? 'share' : 'download'} />
+            <Icon name={shareFiles ? 'ios_share' : 'download'} />
             {shareFiles ? 'Share' : 'Download'}
           </button>
           {copyImages && (
             <button type="button" class="btn btn-secondary btn-copy" onClick={onCopy} disabled={exportBlocked}>
-              <Icon name="copy" />
+              <Icon name="content_copy" />
               Copy
+            </button>
+          )}
+          {shareFiles && (
+            <button type="button" class="icon-btn btn-download" onClick={onDownload} disabled={exportBlocked} aria-label="Download image">
+              <Icon name="download" />
             </button>
           )}
         </nav>
@@ -426,43 +522,47 @@ export function App() {
         <WorkoutSheet
           sport={sport}
           title={title}
-          cardioLoad={cardioLoad}
+          location={location}
           canPickAnother={workouts.length > 1}
           onChangeSport={() => setSheet('sport')}
           onTitle={setTitle}
-          onCardioLoad={(v) => {
-            // Turn the stat on the first time a value is entered.
-            if (v !== null && cardioLoad === null && !prefs.stats.includes('cardioLoad')) {
-              updatePrefs({ stats: [...prefs.stats, 'cardioLoad'] });
-            }
-            setCardioLoad(v);
-          }}
+          onLocation={setLocation}
           onPickAnother={() => setSheet('pick')}
           onImport={openPicker}
           onClose={() => setSheet(null)}
         />
       )}
-      {sheet === 'settings' && (
-        <SettingsSheet
-          prefs={prefs}
-          hour12={hour12}
-          onChange={updatePrefs}
-          onReset={() => {
-            clearPrefs();
-            setPrefs({ ...DEFAULT_PREFS });
-            showToast('Preferences reset');
+      {settingsSheet}
+      {sheet === 'designs' && (
+        <DesignsSheet
+          designs={designs}
+          activeId={design.id}
+          favourites={prefs.favourites}
+          locked={lockedFor}
+          data={data}
+          optsFor={optsFor}
+          ready={fontsReady}
+          onPick={(id) => {
+            updatePrefs({ designId: designById(id).id });
+            setSheet(null);
           }}
+          onStar={onStar}
           onClose={() => setSheet(null)}
         />
       )}
       {customizing && (
-        <CustomizeSheet
+        <EditSheet
           design={design}
+          data={data}
           prefs={prefs}
           accent={opts.accent}
+          stats={stats}
           available={available}
           hasHr={hasHr}
+          zonesLocked={zonesLocked}
           onChange={updatePrefs}
+          onOpenSettings={() => setSheet('settings')}
+          onOpenDetails={() => setSheet('workout')}
           onClose={() => setSheet(null)}
         />
       )}

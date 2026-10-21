@@ -13,6 +13,16 @@ import type { CardDesign } from './types';
 
 export const DEFAULT_ACCENT = '#FFB547';
 export const ACCENTS = ['#FFB547', '#FF6B35', '#FF4D8D', '#3DDC97', '#4CC9F0', '#0A84FF', '#B18CFF', '#FFFFFF'];
+export const ACCENT_NAMES: Record<string, string> = {
+  '#FFB547': 'Mango',
+  '#FF6B35': 'Orange',
+  '#FF4D8D': 'Pink',
+  '#3DDC97': 'Mint',
+  '#4CC9F0': 'Sky',
+  '#0A84FF': 'Blue',
+  '#B18CFF': 'Lilac',
+  '#FFFFFF': 'White',
+};
 
 /** Catalogue order (the picker shows favourites first, then this order). */
 export const DESIGNS: CardDesign[] = [summary, hero, trace, zones, messages, receipt, editorial, pill, widgets, poster, dial];

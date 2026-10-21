@@ -85,6 +85,34 @@ export function renderCard(
   return layout;
 }
 
+/** Small preview: the same drawing scaled to `width` CSS pixels (× devicePixelRatio). */
+export function renderThumb(
+  canvas: HTMLCanvasElement,
+  design: CardDesign,
+  data: CardData,
+  opts: CardOptions,
+  size: SizeKey,
+  width: number,
+  dpr = 1,
+): void {
+  const layout = canvasLayout(design, data, opts, size);
+  const k = (width * dpr) / layout.width;
+  canvas.width = Math.round(layout.width * k);
+  canvas.height = Math.round(layout.height * k);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.clearRect(0, 0, layout.width, layout.height);
+  if (opts.background === 'solid') {
+    ctx.fillStyle = design.background(opts);
+    ctx.fillRect(0, 0, layout.width, layout.height);
+  }
+  ctx.translate(layout.x, layout.y);
+  ctx.scale(layout.scale, layout.scale);
+  design.draw(ctx, layout.box, data, opts);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+}
+
 export function renderToNewCanvas(
   design: CardDesign,
   data: CardData,
