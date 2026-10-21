@@ -216,29 +216,55 @@ export function seededRandom(seed: number): () => number {
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 
-/** The 3-bar glyph, drawn with paths into a size×size square. */
-export function drawLogoGlyph(ctx: Ctx, x: number, y: number, size: number, color: string): void {
-  const barW = size * 0.24;
-  const gap = (size - barW * 3) / 2;
-  const heights = [0.5, 0.75, 1];
-  ctx.fillStyle = color;
-  heights.forEach((hf, i) => {
-    const h = size * hf;
-    roundRectPath(ctx, x + i * (barW + gap), y + size - h, barW, h, barW * 0.45);
-    ctx.fill();
-  });
+export const BRAND = 'Sweatshot';
+export const BRAND_ORANGE = '#FFB547';
+
+/** Sweat-drop outline in a unit box (tip at the top). */
+export function dropPath(ctx: Ctx, x: number, y: number, size: number): void {
+  const w = size * 0.78; // the drop is narrower than it is tall
+  const cx = x + size / 2;
+  const r = w / 2;
+  const cy = y + size - r;
+  ctx.beginPath();
+  ctx.moveTo(cx, y);
+  ctx.bezierCurveTo(cx + r * 0.25, y + size * 0.16, cx + r, cy - r * 0.9, cx + r, cy);
+  ctx.arc(cx, cy, r, 0, Math.PI, false);
+  ctx.bezierCurveTo(cx - r, cy - r * 0.9, cx - r * 0.25, y + size * 0.16, cx, y);
+  ctx.closePath();
 }
 
-const LOGO_TEXT = 'Statshot';
+/** Four-point spark (the "shot" flash) centred on cx, cy. */
+export function sparkPath(ctx: Ctx, cx: number, cy: number, r: number): void {
+  const k = r * 0.28;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy - r);
+  ctx.quadraticCurveTo(cx + k, cy - k, cx + r, cy);
+  ctx.quadraticCurveTo(cx + k, cy + k, cx, cy + r);
+  ctx.quadraticCurveTo(cx - k, cy + k, cx - r, cy);
+  ctx.quadraticCurveTo(cx - k, cy - k, cx, cy - r);
+  ctx.closePath();
+}
+
+/** The drop glyph with its spark, drawn into a size×size square. */
+export function drawLogoGlyph(ctx: Ctx, x: number, y: number, size: number, color: string, spark?: string): void {
+  dropPath(ctx, x, y, size);
+  ctx.fillStyle = color;
+  ctx.fill();
+  if (spark) {
+    sparkPath(ctx, x + size * 0.6, y + size * 0.62, size * 0.17);
+    ctx.fillStyle = spark;
+    ctx.fill();
+  }
+}
 
 export function measureLogo(ctx: Ctx, size: number, family = SANS, style: 'normal' | 'italic' = 'normal'): number {
   ctx.font = font(family, 600, size, style);
-  return size * 0.78 + size * 0.36 + ctx.measureText(LOGO_TEXT).width;
+  return size * 0.9 + size * 0.3 + ctx.measureText(BRAND).width;
 }
 
 /**
- * Wordmark + glyph. `size` is the text size; the glyph matches cap height. `y` is the
- * vertical centre of the mark. Returns the drawn width.
+ * Wordmark + drop glyph. `size` is the text size; `y` is the vertical centre of the mark.
+ * Returns the drawn width.
  */
 export function drawLogo(
   ctx: Ctx,
@@ -250,13 +276,13 @@ export function drawLogo(
 ): number {
   const w = measureLogo(ctx, size);
   const left = align === 'left' ? x : align === 'center' ? x - w / 2 : x - w;
-  const glyph = size * 0.78;
-  drawLogoGlyph(ctx, left, y - glyph / 2 - size * 0.02, glyph, color);
+  const glyph = size * 0.9;
+  drawLogoGlyph(ctx, left, y - glyph / 2 - size * 0.04, glyph, color);
   ctx.font = font(SANS, 600, size);
   ctx.fillStyle = color;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(LOGO_TEXT, left + glyph + size * 0.36, y + size * 0.36);
+  ctx.fillText(BRAND, left + glyph + size * 0.3, y + size * 0.36);
   return w;
 }
 

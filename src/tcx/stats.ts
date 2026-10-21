@@ -1,11 +1,16 @@
+import type { ZoneMinutes } from '../render/types';
 import type { HrSample, WallClock, Workout } from './parse';
 
 /** Intervals longer than this are treated as gaps (watch off-wrist, paused…). */
 export const MAX_GAP_SEC = 30;
 
-export const ZONE_BOUNDS = [50, 60, 70, 80, 90] as const; // % of max HR where Z1…Z5 start
-export const ZONE_NAMES = ['Warm-up', 'Easy', 'Aerobic', 'Threshold', 'Max'] as const;
-export const ZONE_COLORS = ['#8E9AAF', '#4FC3F7', '#81C784', '#FFB74D', '#E57373'] as const;
+/**
+ * Heart-rate-reserve zones as Google Health defines them: % of (max − resting) above resting.
+ * Light < 40 %, Moderate 40–59 %, Vigorous 60–84 %, Peak ≥ 85 %.
+ */
+export const HRR_BOUNDS = [0.4, 0.6, 0.85] as const;
+export const ZONE_NAMES = ['Light', 'Moderate', 'Vigorous', 'Peak'] as const;
+export const ZONE_COLORS = ['#9AA5B1', '#F2B33D', '#EC7A3B', '#D93F5C'] as const;
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -67,41 +72,54 @@ export type DistanceUnit = 'km' | 'mi';
 
 export function formatDistance(meters: number, unit: DistanceUnit): string {
   const v = unit === 'mi' ? meters / 1609.344 : meters / 1000;
-  return `${v.toFixed(1)} ${unit}`;
+  return `${v.toFixed(v < 10 ? 2 : 1)} ${unit}`;
 }
 
 /** Max HR = user override, else 220 − age, else unavailable. */
 export function resolveMaxHr(age: number | null, override: number | null): number | null {
-  if (override !== null && override >= 80 && override <= 250) return Math.round(override);
-  if (age !== null && age >= 5 && age <= 110) return 220 - Math.round(age);
+  if (override !== null && override >= 100 && override <= 230) return Math.round(override);
+  if (age !== null && age >= 10 && age <= 100) return 220 - Math.round(age);
   return null;
 }
 
-/** 0–4 for Z1–Z5, or -1 below 50 % of max HR. */
-export function zoneIndex(bpm: number, maxHrValue: number): number {
-  const pct = (bpm / maxHrValue) * 100;
-  for (let z = ZONE_BOUNDS.length - 1; z >= 0; z--) if (pct >= ZONE_BOUNDS[z]) return z;
-  return -1;
+export function validRestingHr(resting: number | null): resting is number {
+  return resting !== null && Number.isFinite(resting) && resting >= 30 && resting <= 120;
+}
+
+/** 0 light, 1 moderate, 2 vigorous, 3 peak. */
+export function hrrZone(bpm: number, resting: number, maxHrValue: number): number {
+  const reserve = Math.max(1, maxHrValue - resting);
+  const pct = (bpm - resting) / reserve;
+  let z = 0;
+  for (let i = 0; i < HRR_BOUNDS.length; i++) if (pct >= HRR_BOUNDS[i]) z = i + 1;
+  return z;
 }
 
 /**
- * Minutes per zone. Each interval between samples counts toward the zone of its starting
- * sample; gaps longer than 30 s are ignored.
+ * Minutes per HRR zone plus Google-style zone minutes (moderate ×1, vigorous and peak ×2).
+ * Each interval counts toward the zone of its starting sample; gaps over 30 s are ignored.
+ * Null when there is no usable heart rate, no valid resting HR or no max HR.
  */
-export function zoneMinutes(hr: HrSample[], maxHrValue: number): number[] {
-  const sec = [0, 0, 0, 0, 0];
+export function hrrZoneMinutes(
+  hr: HrSample[],
+  resting: number | null,
+  maxHrValue: number | null,
+): ZoneMinutes | null {
+  if (hr.length < 2 || !validRestingHr(resting) || maxHrValue === null || maxHrValue <= resting + 10) return null;
+  const sec = [0, 0, 0, 0];
   for (let i = 0; i < hr.length - 1; i++) {
     const dt = hr[i + 1].t - hr[i].t;
     if (dt <= 0 || dt > MAX_GAP_SEC) continue;
-    const z = zoneIndex(hr[i].bpm, maxHrValue);
-    if (z >= 0) sec[z] += dt;
+    sec[hrrZone(hr[i].bpm, resting, maxHrValue)] += dt;
   }
-  return sec.map((s) => s / 60);
-}
-
-/** Minutes in Z3 and above. */
-export function activeMinutes(zones: number[]): number {
-  return zones[2] + zones[3] + zones[4];
+  const [light, moderate, vigorous, peak] = sec.map((v) => v / 60);
+  return {
+    light,
+    moderate,
+    vigorous,
+    peak,
+    zoneMinutes: Math.round(moderate) + 2 * (Math.round(vigorous) + Math.round(peak)),
+  };
 }
 
 /** Bucket-average down to ≤ maxPoints, then a centred moving average (window 5). */
@@ -160,6 +178,16 @@ export function formatTime(w: WallClock, hour12: boolean): string {
   if (!hour12) return `${String(w.h).padStart(2, '0')}:${mm}`;
   const h = w.h % 12 === 0 ? 12 : w.h % 12;
   return `${h}:${mm} ${w.h < 12 ? 'AM' : 'PM'}`;
+}
+
+/** Wall clock `sec` seconds after `w` (date rolls over past midnight). */
+export function addSeconds(w: WallClock, sec: number): WallClock {
+  const t = new Date(Date.UTC(w.y, w.mo - 1, w.d, w.h, w.mi) + Math.round(sec / 60) * 60_000);
+  return { ...w, y: t.getUTCFullYear(), mo: t.getUTCMonth() + 1, d: t.getUTCDate(), h: t.getUTCHours(), mi: t.getUTCMinutes() };
+}
+
+export function weekday(w: WallClock): string {
+  return WEEKDAYS[weekdayOf(w)];
 }
 
 /** "2026-10-20" */

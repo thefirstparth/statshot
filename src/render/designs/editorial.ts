@@ -42,6 +42,7 @@ function layout(data: CardData, opts: CardOptions) {
 export const editorial: CardDesign = {
   id: 'editorial',
   name: 'Editorial',
+  blurb: 'Magazine-style serif, calm and classy',
   supportsAccent: false,
 
   background(opts) {
@@ -77,7 +78,7 @@ export const editorial: CardDesign = {
     ctx.fillRect(cx - RULE_W / 2, box.y + L.rule2, RULE_W, RULE_H);
 
     if (opts.showLogo) {
-      drawFitText(ctx, 'Statshot', cx, box.y + baseline(L.logoTop, LOGO), maxW, { family: SERIF, weight: 400, size: LOGO, style: 'italic' }, rgba(ink, 0.85), 'center');
+      drawFitText(ctx, 'Sweatshot', cx, box.y + baseline(L.logoTop, LOGO), maxW, { family: SERIF, weight: 400, size: LOGO, style: 'italic' }, rgba(ink, 0.85), 'center');
     }
   },
 };

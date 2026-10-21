@@ -7,7 +7,7 @@ declare const self: ServiceWorkerGlobalScope & {
   __WB_MANIFEST: Array<{ url: string; revision: string | null } | string>;
 };
 
-const SHARE_CACHE = 'statshot-share';
+const SHARE_CACHE = 'sweatshot-share';
 
 // Android share target: stash the shared file locally, then hand over to the app.
 // (iOS ignores share_target; that's expected.)

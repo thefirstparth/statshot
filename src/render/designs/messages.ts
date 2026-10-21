@@ -61,6 +61,7 @@ function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
 export const messages: CardDesign = {
   id: 'messages',
   name: 'Messages',
+  blurb: 'Your workout as a text bubble',
   supportsAccent: true,
   defaultAccent: MESSAGES_BLUE,
 
@@ -97,7 +98,7 @@ export const messages: CardDesign = {
     setFont(ctx, META);
     ctx.fillStyle = opts.theme === 'dark' ? '#98989F' : '#6C6C70';
     ctx.textAlign = 'right';
-    const meta = `${data.shortDate} at ${data.timeText}${opts.showLogo ? ' · Statshot' : ''}`;
+    const meta = `${data.shortDate} at ${data.timeText}${opts.showLogo ? ' · Sweatshot' : ''}`;
     ctx.fillText(ellipsize(ctx, meta, box.w - 40), right - 8, box.y + baseline(L.metaTop, META.size));
   },
 };

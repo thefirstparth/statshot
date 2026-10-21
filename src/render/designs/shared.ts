@@ -1,5 +1,5 @@
-import { drawFitText, rgba, setFont, type FontSpec } from '../canvas';
-import type { StatItem } from '../types';
+import { drawFitText, rgba, setFont, visibleStats, type FontSpec } from '../canvas';
+import type { CardDesign, StatItem } from '../types';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -83,4 +83,27 @@ export function textWidth(ctx: Ctx, text: string, f: FontSpec): number {
 
 export function dateLine(dateText: string, timeText: string): string {
   return `${dateText} · ${timeText}`;
+}
+
+/**
+ * Temporary stand-in used while a design is being drawn: title, date and the stats as text.
+ * Each real design replaces its file wholesale.
+ */
+export function placeholderDesign(id: string, name: string, blurb: string): CardDesign {
+  const pad = 64;
+  return {
+    id,
+    name,
+    blurb,
+    supportsAccent: false,
+    background: (opts) => (opts.theme === 'dark' ? '#111214' : '#F6F7F9'),
+    measure: (_w, data, opts) => ({ h: pad * 2 + 140 + visibleStats(data, opts).length * 90 }),
+    draw(ctx, box, data, opts) {
+      const ink = opts.theme === 'dark' ? '#FFFFFF' : '#111214';
+      drawFitText(ctx, data.title, box.x + pad, box.y + pad + 70, box.w - pad * 2, { size: 72, weight: 700 }, ink);
+      visibleStats(data, opts).forEach((s, i) => {
+        drawFitText(ctx, `${s.label}: ${s.value}`, box.x + pad, box.y + pad + 200 + i * 90, box.w - pad * 2, { size: 48 }, ink);
+      });
+    },
+  };
 }

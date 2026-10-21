@@ -90,7 +90,7 @@ export function downloadBlob(blob: Blob, filename: string): void {
   setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
-/** statshot-<sport>-<yyyy-mm-dd>.png */
+/** sweatshot-<sport>-<yyyy-mm-dd>.png */
 export function exportFilename(sportSlug: string, isoDate: string): string {
-  return `statshot-${sportSlug}-${isoDate}.png`;
+  return `sweatshot-${sportSlug}-${isoDate}.png`;
 }

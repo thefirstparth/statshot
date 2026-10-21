@@ -1,19 +1,16 @@
-import icons from 'virtual:tabler-icons';
+import icons from 'virtual:icons';
 import { FALLBACK_ICON } from '../sports';
 import { renderEnv } from './env';
 import type { IconRequest } from './types';
 
-export function iconSvg(name: string): string {
+/** SVG path data (0 -960 960 960 viewBox) for an icon, falling back to the default glyph. */
+export function iconPath(name: string): string {
   return icons[name] ?? icons[FALLBACK_ICON] ?? '';
 }
 
-/** Tabler SVG recoloured (currentColor → color) and sized for crisp rasterisation. */
-export function coloredIconSvg(name: string, color: string, size: number, strokeWidth = 2): string {
-  return iconSvg(name)
-    .replace(/currentColor/g, color)
-    .replace(/\swidth="24"/, ` width="${size}"`)
-    .replace(/\sheight="24"/, ` height="${size}"`)
-    .replace(/stroke-width="2"/, `stroke-width="${strokeWidth}"`);
+/** Complete SVG with the given fill; `currentColor` lets inline UI icons inherit text colour. */
+export function iconSvg(name: string, color = 'currentColor', size = 24): string {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960" width="${size}" height="${size}" fill="${color}"><path d="${iconPath(name)}"/></svg>`;
 }
 
 const cache = new Map<string, CanvasImageSource>();
@@ -29,7 +26,7 @@ export function loadIcons(requests: IconRequest[]): Promise<void> {
       if (cache.has(key)) return undefined;
       let p = pending.get(key);
       if (!p) {
-        const svg = coloredIconSvg(r.name, r.color, Math.round(r.size));
+        const svg = iconSvg(r.name, r.color, Math.round(r.size));
         const src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
         p = renderEnv()
           .loadImage(src)
@@ -60,4 +57,29 @@ export function drawIcon(
 ): void {
   const img = cache.get(keyOf({ name, color, size }));
   if (img) ctx.drawImage(img, x, y, size, size);
+}
+
+/**
+ * Draws an icon straight from its path data (no decode step). Preferred for new designs: it
+ * is synchronous and exact at any size.
+ */
+export function drawIconPath(
+  ctx: CanvasRenderingContext2D,
+  name: string,
+  color: string,
+  x: number,
+  y: number,
+  size: number,
+): void {
+  if (typeof Path2D === 'undefined') {
+    drawIcon(ctx, name, color, x, y, size);
+    return;
+  }
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(size / 960, size / 960);
+  ctx.translate(0, 960);
+  ctx.fillStyle = color;
+  ctx.fill(new Path2D(iconPath(name)));
+  ctx.restore();
 }

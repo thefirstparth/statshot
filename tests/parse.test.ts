@@ -95,16 +95,18 @@ describe('parseTcx: other fixtures', () => {
       workout: w,
       sport: sportById('strength'),
       title: '',
-      cardioLoad: null,
+      location: '',
       hour12: false,
       distanceUnit: 'km',
       age: 30,
+      restingHr: 60,
       maxHrOverride: null,
     });
     expect(data.stats.avgHr).toBeUndefined();
     expect(data.stats.maxHr).toBeUndefined();
-    expect(data.stats.activeMin).toBeUndefined();
-    expect(availableDesigns(false).map((d) => d.id)).toEqual(['glass', 'midnight', 'block', 'receipt', 'editorial', 'messages']);
+    expect(data.stats.zoneMin).toBeUndefined();
+    expect(availableDesigns(false).every((d) => !d.needsHr)).toBe(true);
+    expect(availableDesigns(false).map((d) => d.id)).not.toContain('trace');
   });
 
   it('returns every activity in a multi-activity file', () => {

@@ -5,10 +5,9 @@ import { splitRows, statRows, visibleStats } from '../src/render/canvas';
 import { statSentence } from '../src/render/designs/messages';
 import type { CardOptions, StatItem } from '../src/render/types';
 import { slugify, sportById, customSportId } from '../src/sports';
-import { DEFAULT_PREFS, loadPrefs, pushRecent, savePrefs } from '../src/state/store';
+import { DEFAULT_PREFS, loadPrefs, orderDesigns, pushRecent, savePrefs, toggleFavourite } from '../src/state/store';
 import { parseTcx, type HrSample, type Workout } from '../src/tcx/parse';
 import {
-  activeMinutes,
   avgHr,
   formatDistance,
   formatDuration,
@@ -20,8 +19,8 @@ import {
   maxHr,
   minHr,
   resolveMaxHr,
-  zoneIndex,
-  zoneMinutes,
+  hrrZone,
+  hrrZoneMinutes,
 } from '../src/tcx/stats';
 import { fixture } from './helpers';
 
@@ -98,39 +97,47 @@ describe('zones', () => {
     expect(resolveMaxHr(null, null)).toBeNull();
   });
 
-  it('assigns zones by % of max HR (50/60/70/80/90)', () => {
-    expect(zoneIndex(99, 200)).toBe(-1);
-    expect(zoneIndex(100, 200)).toBe(0);
-    expect(zoneIndex(119, 200)).toBe(0);
-    expect(zoneIndex(120, 200)).toBe(1);
-    expect(zoneIndex(140, 200)).toBe(2);
-    expect(zoneIndex(160, 200)).toBe(3);
-    expect(zoneIndex(180, 200)).toBe(4);
-    expect(zoneIndex(230, 200)).toBe(4);
+  it('assigns heart-rate-reserve zones (40/60/85 % of reserve)', () => {
+    // resting 60, max 190 → reserve 130: 40 % = 112, 60 % = 138, 85 % = 170.5
+    expect(hrrZone(100, 60, 190)).toBe(0);
+    expect(hrrZone(112, 60, 190)).toBe(1);
+    expect(hrrZone(137, 60, 190)).toBe(1);
+    expect(hrrZone(138, 60, 190)).toBe(2);
+    expect(hrrZone(170, 60, 190)).toBe(2);
+    expect(hrrZone(171, 60, 190)).toBe(3);
+    expect(hrrZone(230, 60, 190)).toBe(3);
   });
 
-  it('attributes each interval to its starting sample and skips gaps', () => {
+  it('counts zone minutes like Google Health and skips gaps', () => {
+    // resting 60, max 190
     const hr: HrSample[] = [
-      { t: 0, bpm: 90 }, // below Z1: not counted
-      { t: 30, bpm: 110 }, // Z1
-      { t: 60, bpm: 130 }, // Z2
-      { t: 90, bpm: 150 }, // Z3
-      { t: 120, bpm: 170 }, // Z4
-      { t: 150, bpm: 190 }, // Z5
-      { t: 180, bpm: 190 }, // 60 s gap follows: ignored
-      { t: 240, bpm: 150 },
+      { t: 0, bpm: 90 }, // light
+      { t: 30, bpm: 120 }, // moderate
+      { t: 60, bpm: 150 }, // vigorous
+      { t: 90, bpm: 150 }, // vigorous
+      { t: 120, bpm: 180 }, // peak
+      { t: 150, bpm: 180 }, // 60 s gap follows: ignored
+      { t: 210, bpm: 150 },
     ];
-    const z = zoneMinutes(hr, 200);
-    expect(z).toEqual([0.5, 0.5, 0.5, 0.5, 0.5]);
-    expect(activeMinutes(z)).toBe(1.5);
+    const z = hrrZoneMinutes(hr, 60, 190)!;
+    expect([z.light, z.moderate, z.vigorous, z.peak]).toEqual([0.5, 0.5, 1, 0.5]);
+    expect(z.zoneMinutes).toBe(Math.round(z.moderate) + 2 * (Math.round(z.vigorous) + Math.round(z.peak)));
+  });
+
+  it('needs a valid resting HR and max HR', () => {
+    const w = basic();
+    expect(hrrZoneMinutes(w.hr, null, 190)).toBeNull();
+    expect(hrrZoneMinutes(w.hr, 62, null)).toBeNull();
+    expect(hrrZoneMinutes(w.hr, 10, 190)).toBeNull();
+    expect(hrrZoneMinutes([], 62, 190)).toBeNull();
   });
 
   it('adds up to the recorded time for the fixture', () => {
     const w = basic();
-    const z = zoneMinutes(w.hr, 190);
-    const total = z.reduce((a, b) => a + b, 0);
+    const z = hrrZoneMinutes(w.hr, 62, 190)!;
+    const total = z.light + z.moderate + z.vigorous + z.peak;
     expect(total).toBeLessThanOrEqual(6648 / 60 + 1e-9);
-    expect(z[0] + z[1]).toBeGreaterThan(0);
+    expect(z.zoneMinutes).toBeGreaterThan(0);
   });
 });
 
@@ -152,9 +159,10 @@ describe('graph series', () => {
 });
 
 describe('formatting', () => {
-  it('formats distance in km or mi with one decimal', () => {
-    expect(formatDistance(4827.9, 'km')).toBe('4.8 km');
-    expect(formatDistance(4827.9, 'mi')).toBe('3.0 mi');
+  it('formats distance with two decimals under 10, one above', () => {
+    expect(formatDistance(4827.9, 'km')).toBe('4.83 km');
+    expect(formatDistance(12345, 'km')).toBe('12.3 km');
+    expect(formatDistance(4827.9, 'mi')).toBe('3.00 mi');
   });
 
   it('formats 12h and 24h times', () => {
@@ -172,7 +180,7 @@ describe('formatting', () => {
   });
 
   it('builds the export filename', () => {
-    expect(exportFilename(slugify('table-tennis'), '2026-10-20')).toBe('statshot-table-tennis-2026-10-20.png');
+    expect(exportFilename(slugify('table-tennis'), '2026-10-20')).toBe('sweatshot-table-tennis-2026-10-20.png');
     expect(slugify('Bouldering & Co')).toBe('bouldering-co');
     expect(slugify('Ωμέγα')).toBe('workout');
   });
@@ -183,10 +191,11 @@ describe('card data', () => {
     workout: basic(),
     sport: sportById('table-tennis'),
     title: '',
-    cardioLoad: null,
+    location: '',
     hour12: false,
     distanceUnit: 'km',
     age: null,
+    restingHr: null,
     maxHrOverride: null,
   });
 
@@ -197,8 +206,10 @@ describe('card data', () => {
     expect(data.stats.energy?.value).toBe('496 kcal');
     expect(data.stats.avgHr?.value).toBe('112 bpm');
     expect(data.stats.maxHr?.value).toBe('135 bpm');
-    expect(data.zoneMinutes).toBeNull(); // no age yet
-    expect(availableStats(data)).toEqual(['duration', 'energy', 'avgHr', 'maxHr']);
+    expect(data.endTimeText).toBe('03:53');
+    expect(data.stats.timeRange?.value).toBe('02:02–03:53');
+    expect(data.zones).toBeNull(); // no zone settings yet
+    expect(availableStats(data)).toEqual(['duration', 'energy', 'avgHr', 'maxHr', 'minHr', 'timeRange']);
   });
 
   it('builds the Messages sentence', () => {
@@ -209,11 +220,11 @@ describe('card data', () => {
   it('uses custom sports and titles', () => {
     const custom = sportById(customSportId('Bouldering'));
     expect(custom.name).toBe('Bouldering');
-    expect(custom.icon).toBe('activity');
+    expect(custom.icon).toBe('exercise');
   });
 
   it('splits stat rows so any count looks intentional', () => {
-    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ key: 'duration', label: `${i}`, value: '', phrase: '' }) as StatItem);
+    const items = (n: number) => Array.from({ length: n }, (_, i) => ({ key: 'duration', label: `${i}`, short: '', value: '', number: '', unit: '', phrase: '' }) as StatItem);
     expect(statRows(items(3)).map((r) => r.length)).toEqual([3]);
     expect(statRows(items(4)).map((r) => r.length)).toEqual([2, 2]);
     expect(statRows(items(5)).map((r) => r.length)).toEqual([3, 2]);
@@ -234,15 +245,33 @@ describe('preferences', () => {
   });
 
   it('ignores corrupt or out-of-range values', () => {
-    localStorage.setItem('statshot:prefs:v1', '{not json');
+    localStorage.setItem('sweatshot:prefs:v1', '{not json');
     expect(loadPrefs()).toEqual(DEFAULT_PREFS);
-    localStorage.setItem('statshot:prefs:v1', JSON.stringify({ designId: 'nope', age: -3, stats: [], size: 'huge', accent: 'red' }));
+    localStorage.setItem(
+      'sweatshot:prefs:v1',
+      JSON.stringify({ designId: 'nope', age: -3, restingHr: 5, stats: [], size: 'huge', accent: 'red', favourites: 'x', appearance: 'neon' }),
+    );
     expect(loadPrefs()).toEqual(DEFAULT_PREFS);
   });
 
-  it('keeps the last 4 recent sports, newest first', () => {
+  it('reads settings saved under the old Statshot key', () => {
+    localStorage.setItem('statshot:prefs:v1', JSON.stringify({ age: 33, designId: 'glass' }));
+    const p = loadPrefs();
+    expect(p.age).toBe(33);
+    expect(p.designId).toBe(DEFAULT_PREFS.designId); // retired design falls back
+  });
+
+  it('keeps the last 6 recent sports, newest first', () => {
     let r: string[] = [];
-    for (const id of ['a', 'b', 'c', 'd', 'b', 'e']) r = pushRecent(r, id);
-    expect(r).toEqual(['e', 'b', 'd', 'c']);
+    for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'b', 'g']) r = pushRecent(r, id);
+    expect(r).toEqual(['g', 'b', 'f', 'e', 'd', 'c']);
+  });
+
+  it('stars up to 5 designs and orders favourites first', () => {
+    expect(toggleFavourite(['a', 'b'], 'a')).toEqual(['b']);
+    expect(toggleFavourite(['a', 'b'], 'c')).toEqual(['a', 'b', 'c']);
+    expect(toggleFavourite(['a', 'b', 'c', 'd', 'e'], 'f')).toBeNull();
+    const d = ['a', 'b', 'c', 'd'].map((id) => ({ id }));
+    expect(orderDesigns(d, ['c', 'a']).map((x) => x.id)).toEqual(['c', 'a', 'b', 'd']);
   });
 });

@@ -9,6 +9,7 @@ export const SANS = 'Inter';
 export const SERIF = 'Instrument Serif';
 export const MONO = 'JetBrains Mono';
 export const GROTESK = 'Space Grotesk';
+export const DISPLAY = 'Bricolage Grotesque';
 
 /** Every face any design draws with. */
 export const FONT_FACES: FontFace[] = [
@@ -52,6 +53,18 @@ export const FONT_FACES: FontFace[] = [
     style: 'normal',
     file: 'space-grotesk/files/space-grotesk-latin-700-normal',
   },
+  {
+    family: DISPLAY,
+    weight: 600,
+    style: 'normal',
+    file: 'bricolage-grotesque/files/bricolage-grotesque-latin-600-normal',
+  },
+  {
+    family: DISPLAY,
+    weight: 800,
+    style: 'normal',
+    file: 'bricolage-grotesque/files/bricolage-grotesque-latin-800-normal',
+  },
 ];
 
 const FALLBACKS: Record<string, string> = {
@@ -59,6 +72,7 @@ const FALLBACKS: Record<string, string> = {
   [SERIF]: 'Georgia, serif',
   [MONO]: 'ui-monospace, Menlo, monospace',
   [GROTESK]: 'system-ui, sans-serif',
+  [DISPLAY]: 'system-ui, sans-serif',
 };
 
 /** CSS font shorthand for ctx.font. */

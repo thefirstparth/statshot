@@ -14,8 +14,8 @@ const SIZES: SizeKey[] = ['story', 'post', 'square', 'sticker'];
 const THEMES = ['light', 'dark'] as const;
 const BACKGROUNDS = ['transparent', 'solid'] as const;
 
-/** Set STATSHOT_PREVIEW=1 to write every render to tests/output/ for eyeballing. */
-const PREVIEW = !!process.env.STATSHOT_PREVIEW;
+/** Set SWEATSHOT_PREVIEW=1 to write every render to tests/output/ for eyeballing. */
+const PREVIEW = !!process.env.SWEATSHOT_PREVIEW;
 const OUT = path.join(path.dirname(fileURLToPath(import.meta.url)), 'output');
 
 type NapiCanvas = HTMLCanvasElement & { encodeSync?(format: 'png'): Buffer };
@@ -31,10 +31,11 @@ function cardData(w: Workout, extra: Partial<Parameters<typeof buildCardData>[0]
     workout: w,
     sport: sportById('table-tennis'),
     title: '',
-    cardioLoad: 87,
+    location: 'Smash Club',
     hour12: false,
     distanceUnit: 'km',
     age: 30,
+    restingHr: 62,
     maxHrOverride: null,
     ...extra,
   });
@@ -128,7 +129,10 @@ describe('render', () => {
   });
 
   it('shrinks and ellipsizes very long titles', async () => {
-    const long = cardData(load('synthetic-basic.tcx'), { title: 'Extremely long custom workout title that cannot possibly fit on one line' });
+    const long = cardData(load('synthetic-basic.tcx'), {
+      title: 'Extremely long custom workout title that cannot possibly fit',
+      location: 'A very long location name that keeps on going',
+    });
     for (const design of DESIGNS) {
       const opts = options(['duration', 'energy', 'avgHr', 'maxHr'], { accent: resolveAccent(design, null) });
       await prepareCard(design, long, opts);
@@ -147,9 +151,9 @@ describe('render', () => {
     }
   });
 
-  it('renders Zones without a max HR (placeholder state)', async () => {
-    const data = cardData(load('synthetic-basic.tcx'), { age: null });
-    expect(data.zoneMinutes).toBeNull();
+  it('renders Zones without zone settings (placeholder state)', async () => {
+    const data = cardData(load('synthetic-basic.tcx'), { restingHr: null });
+    expect(data.zones).toBeNull();
     const design = DESIGNS.find((d) => d.id === 'zones')!;
     const opts = options(['duration'], {});
     await prepareCard(design, data, opts);
