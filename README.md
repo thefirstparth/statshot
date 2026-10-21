@@ -1,34 +1,30 @@
-# Statshot
+# Sweatshot
 
-Statshot turns a workout export file (`.tcx`) into a good-looking share image for Instagram Stories, WhatsApp and the rest. Google Health (Fitbit Air) shows your workouts but can't share one as an image; it can only export a TCX file. Statshot reads that file in your browser, lets you pick from eight card designs, tweak them a little, and share or copy a PNG in one tap.
+Sweatshot turns a Google Health workout export (`.tcx`) into a picture you can post: a story, a chat message, or a clear sticker to drop on your own photo. Google Health (Fitbit Air) shows your workouts but can't share one as an image; it can only export a TCX file. Sweatshot reads that file on your phone, lets you pick from eleven designs, and shares, copies or downloads a PNG in one tap.
 
 **Live app:** https://statshot-five.vercel.app
 
 ## How to use it
 
 1. **Export the workout.** In Google Health, open the workout, tap ⋯ → Export, and choose Save to Files.
-2. **Import it.** Open Statshot, tap "Import workout file" and pick the file. Then choose the sport (the file only says "Other").
-3. **Share it.** Swipe through the designs, tap Customize if you like, then Share (Save Image, Instagram, WhatsApp…) or Copy and paste it into your story as a sticker.
+2. **Open it.** Open Sweatshot, tap "Open workout file" and pick the file. Then tap the sport you played (the file only says "Other"). No file yet? Tap "Try a sample workout".
+3. **Share it.** Swipe through the designs, tap "Numbers & look" to choose what's on the card, then Share (Save Image, Instagram, WhatsApp…), Copy, or Download.
 
 Works with any TCX file (Garmin, Strava export, etc.).
 
-Tip: add Statshot to your home screen (Share → Add to Home Screen). It works offline after the first visit.
+Tip: add Sweatshot to your home screen (Share → Add to Home Screen). It works offline after the first visit.
 
 ## Privacy
 
-Nothing is uploaded. Statshot is a static site with no backend, no analytics and no third-party requests: the file is read and drawn entirely on your device, and the production build ships a Content Security Policy that only allows same-origin resources. Only your display preferences (design, colours, age for heart-rate zones…) are saved, in your browser's local storage. The workout itself is never stored.
-
-## Screenshots
-
-<!-- Add screenshots here, e.g. docs/screenshot-carousel.png and docs/screenshot-cards.png -->
-
-| Carousel | Designs |
-| --- | --- |
-| _screenshot placeholder_ | _screenshot placeholder_ |
+Nothing is uploaded. Sweatshot is a static site with no backend, no analytics and no third-party requests: the file is read and drawn entirely on your device, and the production build ships a Content Security Policy that only allows same-origin resources. Only your display preferences (favourite designs, colours, resting heart rate and age for zones…) are saved, in your browser's local storage. The workout itself is never stored.
 
 ## The designs
 
-Glass, Midnight, Block, Receipt, Editorial, Messages, Pulse (heart-rate curve) and Zones (estimated time in heart-rate zones; needs your age or max heart rate in Settings). Each comes in light and dark, with a transparent or solid background, at Story (1080×1920), Post (1080×1350), Square (1080×1080) or Sticker size (just the card, best with a transparent background).
+Eleven designs: Summary, Hero number, Heart trace, Zones, Messages, Receipt, Editorial, Sticker pill, Widgets, Poster and Day dial. Star up to five favourites and they come first when you swipe; the rest stay one tap away under "Designs". Each design comes in light and dark, with a solid or clear (transparent) background, at Story (1080×1920), Post (1080×1350), Square (1080×1080) or just the card. Pick the numbers you want (duration, energy, average, peak and lowest heart rate, zone minutes, distance, time of day) in the order you want them, and add where you played.
+
+## Heart-rate zones
+
+Zones and zone minutes follow Google Health's heart-rate-reserve method: Light below 40 %, Moderate 40–59 %, Vigorous 60–84 % and Peak 85 % and above of (max − resting). Zone minutes count moderate minutes once and vigorous and peak minutes twice. Set your resting heart rate and age (and optionally your max heart rate, otherwise 220 − age) in Settings.
 
 ## Local development
 
@@ -45,8 +41,8 @@ npm run preview   # serve the production build (service worker included)
 Other scripts:
 
 - `npm run fixtures` regenerates the synthetic TCX files in `tests/fixtures/` (deterministic).
-- `npm run icons` regenerates the PWA icons in `public/` from the logo glyph.
-- `STATSHOT_PREVIEW=1 npm test` writes every rendered card to `tests/output/` so you can look at them.
+- `npm run icons` regenerates the PWA icons in `public/` from the sweat-drop mark.
+- `SWEATSHOT_PREVIEW=1 npm test` writes every rendered card to `tests/output/` so you can look at them.
 
 Real exports for local testing go in `tests/fixtures/private/` (gitignored). If any `.tcx` file is there, `npm test` parses it and prints its stats.
 
@@ -63,6 +59,6 @@ If you fork it, change the footer link in `src/config.ts`.
 
 ## License
 
-[MIT](LICENSE). Fonts are bundled from Fontsource under the SIL Open Font License; icons are from Tabler Icons (MIT).
+[MIT](LICENSE). Fonts are bundled from Fontsource under the SIL Open Font License; icons are Material Symbols (Apache-2.0), plus a custom table tennis glyph.
 
 Not affiliated with Google or Fitbit.
