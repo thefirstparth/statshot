@@ -1,0 +1,12 @@
+node_modules/
+dist/
+dev-dist/
+coverage/
+*.log
+.DS_Store
+.vercel/
+
+# Real workout exports stay on your machine.
+tests/fixtures/private/*
+!tests/fixtures/private/.gitkeep
+tests/output/
