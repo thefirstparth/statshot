@@ -45,6 +45,9 @@ export type ZoneMinutes = {
   peak: number;
   /** Moderate counts once, vigorous and peak count double. */
   zoneMinutes: number;
+  /** Inputs used, so cards can print the bpm ranges. */
+  restingHr: number;
+  maxHr: number;
 };
 
 export type CardData = {

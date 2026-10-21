@@ -86,6 +86,11 @@ export function validRestingHr(resting: number | null): resting is number {
   return resting !== null && Number.isFinite(resting) && resting >= 30 && resting <= 120;
 }
 
+/** Lowest bpm of each zone above Light: [moderate, vigorous, peak]. */
+export function hrrZoneStarts(resting: number, maxHrValue: number): number[] {
+  return HRR_BOUNDS.map((b) => Math.ceil(resting + b * (maxHrValue - resting)));
+}
+
 /** 0 light, 1 moderate, 2 vigorous, 3 peak. */
 export function hrrZone(bpm: number, resting: number, maxHrValue: number): number {
   const reserve = Math.max(1, maxHrValue - resting);
@@ -119,6 +124,8 @@ export function hrrZoneMinutes(
     vigorous,
     peak,
     zoneMinutes: Math.round(moderate) + 2 * (Math.round(vigorous) + Math.round(peak)),
+    restingHr: resting,
+    maxHr: maxHrValue,
   };
 }
 
