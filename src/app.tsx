@@ -463,6 +463,14 @@ export function App() {
           </button>
         </header>
         {!hasHr && <p class="note">{NOTE_NO_HR} Heart-rate designs are hidden.</p>}
+        {zonesLocked && design.needsZones && (
+          <p class="note">
+            Zones need your resting heart rate and age.{' '}
+            <button type="button" class="link-btn" onClick={() => setSheet('settings')}>
+              Open settings
+            </button>
+          </p>
+        )}
 
         <main class="stage" inert={customizing}>
           <Carousel
@@ -480,33 +488,43 @@ export function App() {
         </main>
 
         <div class="design-bar">
-          <button type="button" class={`star-btn${starred ? ' is-on' : ''}`} aria-pressed={starred} aria-label={starred ? `Unstar ${design.name}` : `Star ${design.name} as a favourite`} onClick={() => onStar(design.id)}>
+          <button
+            type="button"
+            class={`fav-toggle${starred ? ' is-on' : ''}`}
+            aria-pressed={starred}
+            aria-label={starred ? `${design.name}: favourite. Tap to unstar` : `${design.name}: tap to star as a favourite`}
+            onClick={() => onStar(design.id)}
+          >
             <Icon name={starred ? 'star-fill' : 'star'} />
+            {design.name}
           </button>
-          <button type="button" class="btn btn-ghost" onClick={() => setSheet('designs')}>
-            <Icon name="grid_view" />
-            Designs
-          </button>
-          <button type="button" class="btn btn-ghost" onClick={() => setSheet('customize')}>
+          <button type="button" class="btn btn-secondary btn-customize" onClick={() => setSheet('customize')}>
             <Icon name="palette" />
-            Numbers & look
+            Customize
           </button>
         </div>
 
-        <nav class="action-bar" aria-label="Save or share">
-          <button type="button" class="btn btn-primary btn-share" onClick={onShare} disabled={exportBlocked}>
-            <Icon name={shareFiles ? 'ios_share' : 'download'} />
-            {shareFiles ? 'Share' : 'Download'}
+        <nav class="action-row" aria-label="Save or share">
+          <button type="button" class="round-action" onClick={onDownload} disabled={exportBlocked}>
+            <span class="round-icon">
+              <Icon name="download" />
+            </span>
+            Save image
           </button>
           {copyImages && (
-            <button type="button" class="btn btn-secondary btn-copy" onClick={onCopy} disabled={exportBlocked}>
-              <Icon name="content_copy" />
-              Copy
+            <button type="button" class="round-action" onClick={onCopy} disabled={exportBlocked}>
+              <span class="round-icon">
+                <Icon name="content_copy" />
+              </span>
+              Copy image
             </button>
           )}
           {shareFiles && (
-            <button type="button" class="icon-btn btn-download" onClick={onDownload} disabled={exportBlocked} aria-label="Download image">
-              <Icon name="download" />
+            <button type="button" class="round-action is-primary" onClick={onShare} disabled={exportBlocked}>
+              <span class="round-icon">
+                <Icon name="ios_share" />
+              </span>
+              Share
             </button>
           )}
         </nav>
@@ -562,7 +580,7 @@ export function App() {
           zonesLocked={zonesLocked}
           onChange={updatePrefs}
           onOpenSettings={() => setSheet('settings')}
-          onOpenDetails={() => setSheet('workout')}
+          onOpenDesigns={() => setSheet('designs')}
           onClose={() => setSheet(null)}
         />
       )}

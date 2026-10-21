@@ -579,6 +579,8 @@ button:disabled {
 .app.is-customizing .topbar,
 .app.is-customizing .customize-row,
 .app.is-customizing .action-bar,
+.app.is-customizing .action-row,
+.app.is-customizing .design-bar,
 .app.is-customizing .note,
 .app.is-customizing .dots,
 .app.is-customizing .design-name {
@@ -1861,4 +1863,119 @@ button:disabled {
 .lock-overlay {
   background: rgba(255, 244, 228, 0.94);
   color: #2a1e14;
+}
+
+/* Bevel-simple editor: design name + one Customize button, round labelled actions. */
+
+.design-bar {
+  flex-direction: column;
+  gap: 8px;
+  padding: 0 16px 6px;
+}
+
+.fav-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text);
+  font-weight: 750;
+  font-size: 16px;
+}
+
+.fav-toggle .icon {
+  color: var(--muted);
+}
+
+.fav-toggle.is-on .icon {
+  color: #e8a020;
+}
+
+.btn-customize {
+  min-height: 48px;
+  padding: 0 26px;
+}
+
+.action-row {
+  display: flex;
+  justify-content: center;
+  gap: 22px;
+  padding: 10px 16px calc(var(--safe-bottom) + 14px);
+  border-top: 2px solid var(--line);
+}
+
+.round-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  min-width: 76px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.round-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  background: var(--surface);
+  box-shadow: 3px 3px 0 var(--shadow);
+}
+
+.round-action.is-primary .round-icon {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.round-action:active:not(:disabled) .round-icon {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--shadow);
+}
+
+.round-action:disabled {
+  opacity: 0.45;
+}
+
+.toggle-link {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  min-height: 32px;
+  color: var(--text);
+  font-weight: 750;
+  text-decoration: underline;
+}
+
+.dots {
+  padding: 4px 0;
+}
+
+/* The name sits in the favourite toggle below the dots. */
+.page .design-name {
+  display: none;
+}
+
+.round-icon .icon {
+  width: 28px;
+  height: 28px;
 }

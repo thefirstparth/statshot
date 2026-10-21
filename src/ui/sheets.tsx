@@ -3,7 +3,7 @@ import { MAX_LOCATION, MAX_TITLE } from '../card-data';
 import { REPO_URL } from '../config';
 import { ACCENTS } from '../render/registry';
 import { prepareCard, releaseCanvas, renderThumb } from '../render/render';
-import { MAX_STATS, type CardData, type CardDesign, type CardOptions, type SizeKey, type StatKey } from '../render/types';
+import { MAX_STATS, STAT_ORDER, type CardData, type CardDesign, type CardOptions, type SizeKey, type StatKey } from '../render/types';
 import type { Sport } from '../sports';
 import { MAX_FAVOURITES, type Appearance, type Prefs } from '../state/store';
 import type { Workout } from '../tcx/parse';
@@ -211,13 +211,6 @@ export function SettingsSheet({
           ]}
           onChange={(distanceUnit) => onChange({ distanceUnit })}
         />
-        <div class="toggle-list">
-          <Toggle
-            label="Small Sweatshot mark on images"
-            checked={prefs.showLogo}
-            onChange={(showLogo) => onChange({ showLogo })}
-          />
-        </div>
       </section>
 
       <div class="sheet-actions">
@@ -241,7 +234,7 @@ export function SettingsSheet({
   );
 }
 
-// ── Stats & look ─────────────────────────────────────────────────────────────
+// ── Customize ────────────────────────────────────────────────────────────────
 
 export function EditSheet({
   design,
@@ -254,91 +247,36 @@ export function EditSheet({
   zonesLocked,
   onChange,
   onOpenSettings,
-  onOpenDetails,
+  onOpenDesigns,
   onClose,
 }: {
   design: CardDesign;
   data: CardData;
   prefs: Prefs;
   accent: string;
-  stats: StatKey[]; // what the card shows now, in order
+  stats: StatKey[]; // what the card shows now
   available: StatKey[];
   hasHr: boolean;
   zonesLocked: boolean;
   onChange: (p: Partial<Prefs>) => void;
   onOpenSettings: () => void;
-  onOpenDetails: () => void;
+  onOpenDesigns: () => void;
   onClose: () => void;
 }) {
-  const [note, setNote] = useState<string | null>(null);
-  const toggleStat = (key: StatKey) => {
-    setNote(null);
-    if (stats.includes(key)) {
-      if (stats.length === 1) return setNote('Keep at least one number on the card.');
-      // Keep choices for stats this file lacks (e.g. distance) so they return for other files.
-      return onChange({ stats: prefs.stats.filter((k) => k !== key) });
-    }
-    if (stats.length >= MAX_STATS) return setNote(`Up to ${MAX_STATS} numbers fit. Remove one first.`);
+  const setStat = (key: StatKey, on: boolean) => {
+    // Keep choices for stats this file lacks (e.g. distance) so they return for other files.
     const kept = prefs.stats.filter((k) => !available.includes(k));
-    onChange({ stats: [...stats, key, ...kept] });
+    const next = on ? [...stats, key] : stats.filter((k) => k !== key);
+    if (next.length === 0) return;
+    onChange({ stats: [...STAT_ORDER.filter((k) => next.includes(k)), ...kept] });
   };
   const themeLocked = design.supportsTheme === false;
+  const full = stats.length >= MAX_STATS;
 
   return (
-    <Sheet title="Numbers & look" onClose={onClose} light class="sheet-customize">
-      <div class="field">
-        <div class="field-label">
-          Numbers on the card <span class="field-note">· tap to add or remove, in the order you want</span>
-        </div>
-        <div class="stat-tray">
-          {available.map((k) => {
-            const pos = stats.indexOf(k);
-            const item = data.stats[k]!;
-            return (
-              <button key={k} type="button" class={`stat-sticker k-${k}${pos >= 0 ? ' is-on' : ''}`} aria-pressed={pos >= 0} onClick={() => toggleStat(k)}>
-                {pos >= 0 && <span class="stat-pos">{pos + 1}</span>}
-                <span class="stat-label">{item.label}</span>
-                <b>{item.value}</b>
-              </button>
-            );
-          })}
-          {zonesLocked && hasHr && (
-            <button type="button" class="stat-sticker is-locked" onClick={onOpenSettings}>
-              <span class="stat-label">Zone minutes</span>
-              <b>
-                <Icon name="lock" /> Set up
-              </b>
-            </button>
-          )}
-          <button type="button" class="stat-sticker is-add" onClick={onOpenDetails}>
-            <span class="stat-label">Where</span>
-            <b>{data.location || '+ Add place'}</b>
-          </button>
-        </div>
-        {note && (
-          <p class="field-help" role="status">
-            {note}
-          </p>
-        )}
-      </div>
-
-      {design.supportsGraph && hasHr && (
-        <div class="toggle-list">
-          <Toggle label="Heart-rate line" checked={prefs.showGraph} onChange={(showGraph) => onChange({ showGraph })} />
-        </div>
-      )}
-
+    <Sheet title="Customize" onClose={onClose} light class="sheet-customize">
       <Segmented
-        label="Background"
-        value={prefs.background}
-        options={[
-          { value: 'solid', label: 'Solid' },
-          { value: 'transparent', label: 'Clear (for photos)' },
-        ]}
-        onChange={(background) => onChange({ background })}
-      />
-      <Segmented
-        label="Colours"
+        label="Mode"
         value={themeLocked ? 'light' : prefs.theme}
         disabled={themeLocked}
         note={themeLocked ? `${design.name} is always light` : undefined}
@@ -348,6 +286,49 @@ export function EditSheet({
         ]}
         onChange={(theme) => onChange({ theme })}
       />
+      <Segmented
+        label="Background"
+        value={prefs.background}
+        options={[
+          { value: 'solid', label: 'Solid' },
+          { value: 'transparent', label: 'Clear' },
+        ]}
+        onChange={(background) => onChange({ background })}
+      />
+
+      <div class="toggle-list">
+        {available.map((k) => {
+          const on = stats.includes(k);
+          return (
+            <Toggle
+              key={k}
+              label={data.stats[k]!.label}
+              hint={data.stats[k]!.value}
+              checked={on}
+              disabled={(on && stats.length === 1) || (!on && full)}
+              onChange={(v) => setStat(k, v)}
+            />
+          );
+        })}
+        {zonesLocked && hasHr && (
+          <button type="button" class="toggle-row toggle-link" onClick={onOpenSettings}>
+            <span class="toggle-text">
+              Zone minutes
+              <span class="toggle-hint">Add resting heart rate and age in Settings</span>
+            </span>
+            <Icon name="chevron_right" />
+          </button>
+        )}
+      </div>
+      {full && <p class="field-help">Up to {MAX_STATS} numbers fit on a card.</p>}
+
+      <div class="toggle-list">
+        {design.supportsGraph && hasHr && (
+          <Toggle label="Heart-rate line" checked={prefs.showGraph} onChange={(showGraph) => onChange({ showGraph })} />
+        )}
+        <Toggle label="Show Sweatshot mark" checked={prefs.showLogo} onChange={(showLogo) => onChange({ showLogo })} />
+      </div>
+
       <Segmented<SizeKey>
         label="Size"
         value={prefs.size}
@@ -355,11 +336,23 @@ export function EditSheet({
           { value: 'story', label: 'Story' },
           { value: 'post', label: 'Post' },
           { value: 'square', label: 'Square' },
-          { value: 'sticker', label: 'Just the card' },
+          { value: 'sticker', label: 'Card only' },
         ]}
         onChange={(size) => onChange({ size })}
       />
       {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
+
+      <button type="button" class="row-btn" onClick={onOpenDesigns}>
+        <Icon name="grid_view" />
+        <span class="row-btn-text">See all designs</span>
+        <span class="row-btn-action">Star favourites</span>
+      </button>
+
+      <div class="sheet-actions">
+        <button type="button" class="btn btn-primary" onClick={onClose}>
+          Done
+        </button>
+      </div>
     </Sheet>
   );
 }
