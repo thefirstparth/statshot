@@ -91,8 +91,9 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
 
       <footer class="footer">
         <p>
-          Your file is read on this device only and isn’t kept. Only your settings, favourite designs and recently
-          used sports are saved on this phone. Not affiliated with Google or Fitbit.
+          Your workout file is read on this device only and is never saved. Only your preferences (settings,
+          favourite designs, recent sports and how you last set up a card) are saved on this phone. Not affiliated
+          with Google or Fitbit.
         </p>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="code" />
