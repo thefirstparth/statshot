@@ -39,6 +39,7 @@ export const dial: CardDesign = {
   id: 'dial',
   name: 'Day dial',
   blurb: 'When you played, on a 24-hour clock',
+  floating: true,
   supportsAccent: false,
 
   background(opts) {

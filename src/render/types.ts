@@ -100,6 +100,8 @@ export interface CardDesign {
   supportsTheme?: boolean; // default true; Receipt is always light
   /** One line for the design picker. */
   blurb: string;
+  /** Text drawn straight on the background (no panel): gets a soft shadow when see-through. */
+  floating?: boolean;
   defaultAccent?: string;
   /** Canvas fill when the background is "solid". */
   background(opts: CardOptions): string;

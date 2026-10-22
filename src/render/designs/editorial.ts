@@ -43,6 +43,7 @@ export const editorial: CardDesign = {
   id: 'editorial',
   name: 'Editorial',
   blurb: 'Magazine-style serif, calm and classy',
+  floating: true,
   supportsAccent: false,
 
   background(opts) {

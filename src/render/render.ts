@@ -51,6 +51,15 @@ export function canvasLayout(
   return { width: w, height: h, x: Math.round((w - cw) / 2), y: Math.round(y), scale, box };
 }
 
+/** See-through text-only cards: a soft halo keeps them readable on any photo. */
+function applyFloatingShadow(ctx: CanvasRenderingContext2D, design: CardDesign, opts: CardOptions): void {
+  if (!design.floating || opts.background !== 'transparent') return;
+  ctx.shadowColor = opts.theme === 'dark' ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.75)';
+  ctx.shadowBlur = 18;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
+}
+
 /** Decode everything a card needs before drawing it (fonts are loaded once at app start). */
 export function prepareCard(design: CardDesign, data: CardData, opts: CardOptions): Promise<void> {
   return loadIcons(design.icons?.(data, opts) ?? []);
@@ -80,6 +89,7 @@ export function renderCard(
   ctx.save();
   ctx.translate(layout.x, layout.y);
   ctx.scale(layout.scale, layout.scale);
+  applyFloatingShadow(ctx, design, opts);
   design.draw(ctx, layout.box, data, opts);
   ctx.restore();
   return layout;
@@ -109,7 +119,10 @@ export function renderThumb(
   }
   ctx.translate(layout.x, layout.y);
   ctx.scale(layout.scale, layout.scale);
+  ctx.save();
+  applyFloatingShadow(ctx, design, opts);
   design.draw(ctx, layout.box, data, opts);
+  ctx.restore();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 

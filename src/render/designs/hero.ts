@@ -45,6 +45,7 @@ export const hero: CardDesign = {
   id: 'hero',
   name: 'Hero number',
   blurb: 'One giant number does the talking',
+  floating: true,
   supportsAccent: true,
 
   background(opts) {

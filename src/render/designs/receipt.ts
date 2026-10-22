@@ -17,7 +17,8 @@ const BARCODE_H = 84;
 function layout(data: CardData, opts: CardOptions) {
   const stats: { label: string; value: string }[] = visibleStats(data, opts);
   if (data.location) {
-    const loc = data.location.length > 24 ? data.location.slice(0, 23).trimEnd() + '…' : data.location;
+    const chars = Array.from(data.location); // never split an emoji
+    const loc = chars.length > 24 ? chars.slice(0, 23).join('').trimEnd() + '…' : data.location;
     stats.push({ label: 'Place', value: loc });
   }
   const headerTop = EDGE + 30;

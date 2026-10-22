@@ -37,6 +37,11 @@ export function cleanText(text: string): string {
   return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '').trim();
 }
 
+/** First `max` characters, counting an emoji as one. */
+function clip(text: string, max: number): string {
+  return Array.from(text).slice(0, max).join('');
+}
+
 export const MAX_LOCATION = 40;
 
 export function buildCardData(inp: CardInputs): CardData {
@@ -81,7 +86,7 @@ export function buildCardData(inp: CardInputs): CardData {
   add('timeRange', { label: 'Time of day', short: 'Time', value: range, number: range, unit: '', phrase: `from ${startText} to ${endText}` });
 
   return {
-    title: cleanText(inp.title).slice(0, MAX_TITLE) || sport.name,
+    title: clip(cleanText(inp.title), MAX_TITLE) || sport.name,
     sportName: sport.name,
     sportLower: sport.lower,
     dateText: formatLongDate(w.start),
@@ -94,7 +99,7 @@ export function buildCardData(inp: CardInputs): CardData {
     sportId: sport.id,
     sportIcon: sport.icon,
     sportColors: CATEGORY_COLORS[sport.cat],
-    location: cleanText(inp.location).slice(0, MAX_LOCATION),
+    location: clip(cleanText(inp.location), MAX_LOCATION),
     stats,
     hrSeries: hrSeries(w.hr),
     durationSec: w.durationSec,
