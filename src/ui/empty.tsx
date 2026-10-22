@@ -41,8 +41,8 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
         <span class="tag">For Google Health workouts</span>
         <h1>Turn your workout into a picture to post.</h1>
         <p>
-          Export a workout from Google Health (Fitbit Air works great), open the file here, and get an image for your
-          story or chat. Any .tcx file works too.
+          Export a workout from Google Health (Fitbit Air included). It saves as a .tcx file. Open that file here and
+          get an image for your story or chat. A .tcx file from any other fitness app works too.
         </p>
 
         {error && (

@@ -2138,7 +2138,8 @@ button:disabled {
 /* Toasts sit just above the design name and actions: they cover neither the title nor a button. */
 .toast {
   top: auto;
-  bottom: calc(var(--safe-bottom) + 236px);
+  bottom: calc(var(--safe-bottom) + 290px);
+  max-width: min(92vw, 360px);
 }
 
 /* Landscape phones: Customize becomes a side panel so the card stays visible. */
