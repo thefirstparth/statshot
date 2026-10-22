@@ -3,7 +3,7 @@
   "private": true,
   "version": "1.0.0",
   "description": "Turn a workout export (.tcx) into a share image. 100% client-side.",
-  "license": "MIT",
+  "license": "UNLICENSED",
   "type": "module",
   "scripts": {
     "dev": "vite",

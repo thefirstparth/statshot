@@ -1,4 +1,4 @@
-/** Footer link to the source. Change this if you deploy your own fork. */
+/** Footer link to the source. */
 export const REPO_URL = 'https://github.com/thefirstparth/statshot';
 
 /** Reject anything this large before reading it; real exports are a few MB at most. */

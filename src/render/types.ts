@@ -97,7 +97,7 @@ export interface CardDesign {
   needsZones?: boolean;
   supportsAccent: boolean;
   supportsGraph?: boolean;
-  supportsTheme?: boolean; // default true; Receipt is always light
+  supportsTheme?: boolean; // default true
   /** One line for the design picker. */
   blurb: string;
   /** Text drawn straight on the background (no panel): gets a soft shadow when see-through. */
