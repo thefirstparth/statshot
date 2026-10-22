@@ -255,7 +255,12 @@ export const trace: CardDesign = {
         ctx.lineTo(x0 + box.w, ay);
         ctx.stroke();
         ctx.restore();
-        drawFitText(ctx, `avg ${data.avgHr}`, x0 + PAD, ay - 14, 300, { family: SANS, weight: 600, size: 30 }, p.muted);
+        // A small chip so the trace never runs through the label.
+        const label = `avg ${data.avgHr}`;
+        setFont(ctx, { family: SANS, weight: 600, size: 30 });
+        const lw = ctx.measureText(label).width;
+        fillRoundRect(ctx, x0 + PAD - 12, ay - 24, lw + 24, 48, 24, p.surface);
+        drawFitText(ctx, label, x0 + PAD, ay + 11, 300, { family: SANS, weight: 600, size: 30 }, p.muted);
       }
 
       if (pts.length > 0) {

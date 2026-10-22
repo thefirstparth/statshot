@@ -31,7 +31,7 @@ function layout(data: CardData, opts: CardOptions) {
   const stats = visibleStats(data, opts);
   const [hero, ...rest] = stats;
   const rows = splitRows(rest, 3);
-  const bigTop = BADGE + 72;
+  const bigTop = BADGE + 64;
   const barTop = bigTop + BIG * 0.8 + 64;
   const secTop = barTop + BAR_H + 56;
   const secH = rows.length ? rows.length * SEC_ROW + (rows.length - 1) * 36 : 0;
@@ -80,7 +80,7 @@ export const hero: CardDesign = {
       const numW = drawFitText(ctx, L.hero.number, x - 6, by, w - unitW, { family: DISPLAY, weight: 800, size: BIG }, text, 'left', 0.3);
       if (unit) drawFitText(ctx, unit, x + numW + 18, by, w - numW - 18, { family: SANS, weight: 700, size: BIG_UNIT }, accent, 'left', 0.5);
       // Label above the number keeps "what is this?" obvious.
-      drawFitText(ctx, L.hero.label, x, box.y + L.bigTop - 18, w, { family: SANS, weight: 600, size: 34 }, muted);
+      drawFitText(ctx, L.hero.label, x, box.y + L.bigTop + 8, w, { family: SANS, weight: 600, size: 34 }, muted);
     }
 
     fillRoundRect(ctx, x, box.y + L.barTop, BAR_W, BAR_H, BAR_H / 2, accent);
@@ -90,7 +90,7 @@ export const hero: CardDesign = {
       const ry = box.y + L.secTop + r * (SEC_ROW + 36);
       row.forEach((item, i) => {
         const cx = x + i * colW;
-        drawFitText(ctx, item.value, cx, ry + SEC_VALUE * 0.86, colW - 24, { family: DISPLAY, weight: 800, size: SEC_VALUE }, text, 'left', 0.45);
+        drawFitText(ctx, item.value, cx, ry + SEC_VALUE * 0.86, colW - 44, { family: DISPLAY, weight: 800, size: SEC_VALUE }, text, 'left', 0.3);
         drawFitText(ctx, item.label, cx, baseline(ry + SEC_VALUE + 10, SEC_LABEL), colW - 24, { family: SANS, weight: 500, size: SEC_LABEL }, muted, 'left', 0.7);
       });
     });

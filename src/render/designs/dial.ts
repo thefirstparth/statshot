@@ -1,4 +1,4 @@
-import { drawFitText, drawLogo, rgba, visibleStats } from '../canvas';
+import { drawFitText, drawLogo, rgba, splitRows, visibleStats } from '../canvas';
 import { DISPLAY, MONO, SANS } from '../font-faces';
 import type { CardData, CardDesign, CardOptions, Rect } from '../types';
 import { drawSportBadge, metaLine } from './shared';
@@ -16,8 +16,7 @@ function colors(data: CardData, opts: CardOptions) {
 
 function extras(data: CardData, opts: CardOptions) {
   return visibleStats(data, opts)
-    .filter((s) => s.key !== 'duration' && s.key !== 'timeRange')
-    .slice(0, 3);
+    .filter((s) => s.key !== 'duration' && s.key !== 'timeRange');
 }
 
 function layout(data: CardData, opts: CardOptions) {
@@ -25,11 +24,12 @@ function layout(data: CardData, opts: CardOptions) {
   const metaTop = titleTop + 64 * 1.15 + 6;
   let end = metaTop + 36 * 1.2;
   const ex = extras(data, opts);
+  const rows = splitRows(ex, 3);
   const statsTop = end + 56;
-  if (ex.length) end = statsTop + STATS_H;
+  if (rows.length) end = statsTop + rows.length * STATS_H + (rows.length - 1) * 32;
   const logoTop = end + 48;
   if (opts.showLogo) end = logoTop + LOGO * 1.2;
-  return { titleTop, metaTop, statsTop, logoTop, ex, h: end };
+  return { titleTop, metaTop, statsTop, logoTop, rows, h: end };
 }
 
 /** Angle for a minute of the day: midnight at the top, clockwise. */
@@ -81,7 +81,7 @@ export const dial: CardDesign = {
     ctx.textBaseline = 'middle';
     for (const h of [0, 6, 12, 18]) {
       const a = angle(h * 60);
-      const r = R - 84;
+      const r = R - 76;
       ctx.fillText(String(h).padStart(2, '0'), cx + r * Math.cos(a), cy + r * Math.sin(a));
     }
     ctx.textBaseline = 'alphabetic';
@@ -97,21 +97,22 @@ export const dial: CardDesign = {
 
     // Centre: sport sticker, duration, time range.
     drawSportBadge(ctx, data, cx - BADGE / 2, cy - 196, BADGE, opts.theme === 'dark');
-    drawFitText(ctx, data.stats.duration?.value ?? '', cx, cy + 66, R * 1.3, { family: DISPLAY, weight: 800, size: 136 }, c.ink, 'center', 0.5);
+    drawFitText(ctx, data.stats.duration?.value ?? '', cx, cy + 62, R * 1.1, { family: DISPLAY, weight: 800, size: 124 }, c.ink, 'center', 0.5);
     drawFitText(ctx, `${data.timeText} – ${data.endTimeText}`, cx, cy + 128, R * 1.2, { family: MONO, weight: 400, size: 36 }, c.muted, 'center', 0.7);
 
     // Below the dial.
     drawFitText(ctx, data.title, cx, box.y + L.titleTop + 64 * 0.9, box.w, { family: SANS, weight: 700, size: 64 }, c.ink, 'center', 0.6);
     drawFitText(ctx, metaLine(data, false), cx, box.y + L.metaTop + 36 * 0.9, box.w, { family: SANS, weight: 400, size: 36 }, c.muted, 'center');
 
-    if (L.ex.length) {
-      const colW = box.w / L.ex.length;
-      L.ex.forEach((s, i) => {
+    L.rows.forEach((row, r) => {
+      const colW = box.w / row.length;
+      const top = box.y + L.statsTop + r * (STATS_H + 32);
+      row.forEach((s, i) => {
         const sx = box.x + colW * (i + 0.5);
-        drawFitText(ctx, s.value, sx, box.y + L.statsTop + 52 * 0.86, colW - 24, { family: SANS, weight: 700, size: 52 }, c.ink, 'center', 0.6);
-        drawFitText(ctx, s.label, sx, box.y + L.statsTop + 52 + 10 + 28, colW - 24, { family: SANS, weight: 400, size: 28 }, c.muted, 'center', 0.7);
+        drawFitText(ctx, s.value, sx, top + 52 * 0.86, colW - 24, { family: SANS, weight: 700, size: 52 }, c.ink, 'center', 0.5);
+        drawFitText(ctx, s.label, sx, top + 52 + 10 + 28, colW - 24, { family: SANS, weight: 400, size: 28 }, c.muted, 'center', 0.7);
       });
-    }
+    });
 
     if (opts.showLogo) drawLogo(ctx, cx, box.y + L.logoTop + LOGO * 0.6, LOGO, rgba(opts.theme === 'dark' ? '#FFFFFF' : '#1A1C1E', 0.55), 'center');
   },

@@ -88,7 +88,7 @@ export const summary: CardDesign = {
         const vy = y + TILE_PAD + ICON + 18 + VALUE * 0.86;
         setFont(ctx, { family: SANS, weight: 700, size: VALUE });
         const unitW = item.unit ? (setFont(ctx, { family: SANS, weight: 500, size: UNIT }), ctx.measureText(item.unit).width + 12) : 0;
-        const numW = drawFitText(ctx, item.number, x + TILE_PAD, vy, maxW - unitW, { family: SANS, weight: 700, size: VALUE }, c.ink, 'left', 0.45);
+        const numW = drawFitText(ctx, item.number, x + TILE_PAD, vy, maxW - unitW, { family: SANS, weight: 700, size: VALUE }, c.ink, 'left', 0.3);
         if (item.unit) {
           drawFitText(ctx, item.unit, x + TILE_PAD + numW + 12, vy, maxW - numW - 12, { family: SANS, weight: 500, size: UNIT }, c.muted);
         }

@@ -60,7 +60,7 @@ export const poster: CardDesign = {
     let bottom = y + H - 96;
     if (rest.length) {
       setFont(ctx, { family: SANS, weight: 600, size: LINE });
-      const lines = wrapText(ctx, rest.map((s) => s.value).join(' · '), inner, 2);
+      const lines = wrapText(ctx, rest.map((s) => s.phrase).join(' · '), inner, 3);
       for (let i = lines.length - 1; i >= 0; i--) {
         ctx.fillStyle = p.text;
         ctx.textAlign = 'left';

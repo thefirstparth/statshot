@@ -96,7 +96,7 @@ export const messages: CardDesign = {
     });
 
     setFont(ctx, META);
-    ctx.fillStyle = opts.theme === 'dark' ? '#98989F' : '#6C6C70';
+    ctx.fillStyle = opts.theme === 'dark' ? (opts.background === 'transparent' ? '#E5E5EA' : '#98989F') : '#6C6C70';
     ctx.textAlign = 'right';
     const meta = [`${data.shortDate} at ${data.timeText}`, data.location, opts.showLogo ? 'Sweatshot' : ''].filter(Boolean).join(' · ');
     ctx.fillText(ellipsize(ctx, meta, box.w - 40), right - 8, box.y + baseline(L.metaTop, META.size));

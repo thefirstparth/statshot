@@ -101,8 +101,10 @@ export function App() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Fonts must be ready before the first draw; don't hang forever if one fails.
+  // Card fonts are only needed once there's a workout to draw, so home stays light on slow data.
+  const needFonts = workouts !== null || pending !== null;
   useEffect(() => {
+    if (!needFonts || fontsReady) return;
     let done = false;
     const finish = () => {
       if (!done) {
@@ -113,7 +115,7 @@ export function App() {
     ensureFontsLoaded().then(finish, finish);
     const t = setTimeout(finish, 5000);
     return () => clearTimeout(t);
-  }, []);
+  }, [needFonts]);
 
   // ── Import ─────────────────────────────────────────────────────────────────
 
@@ -132,7 +134,9 @@ export function App() {
       setSportId('cycling');
       setSheet(null);
     } else {
-      setSportId('workout');
+      // Pre-select a likely sport from the pace when the file has distance; the picker still opens.
+      const kmh = w.distanceM && w.durationSec > 0 ? (w.distanceM / w.durationSec) * 3.6 : 0;
+      setSportId(kmh > 1.5 && kmh < 7.5 ? 'walking' : kmh >= 7.5 && kmh < 20 ? 'running' : 'workout');
       setSheet('sport');
     }
   };
