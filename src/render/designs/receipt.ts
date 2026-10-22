@@ -74,7 +74,7 @@ function dashedRule(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
 export const receipt: CardDesign = {
   id: 'receipt',
   name: 'Receipt',
-  blurb: 'A till receipt for your effort',
+  blurb: 'Looks like a shop receipt',
   supportsAccent: false,
   supportsGraph: true,
   background(opts) {

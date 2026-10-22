@@ -28,12 +28,25 @@ export function SportSticker({ sport, size = 56, rotate = true }: { sport: Sport
   );
 }
 
-/** The Sweatshot drop with its spark (matches the canvas glyph and the app icon). */
+/** The Sweatshot heart mark (matches the app icon and drawHeartMark). */
 export function BrandMark({ size = 28 }: { size?: number }) {
+  const k = 70 / 714;
+  const pill = (dx: number, deg: number, fill: string) => (
+    <rect
+      x={-125 * k}
+      y={-250 * k}
+      width={250 * k}
+      height={500 * k}
+      rx={125 * k}
+      fill={fill}
+      transform={`translate(${50 + dx * k} 52) rotate(${deg})`}
+    />
+  );
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" aria-hidden="true" class="brand-mark">
-      <path d="M50 6C58 22 86 46 86 66a36 36 0 0 1-72 0C14 46 42 22 50 6Z" fill="#FFB547" stroke="currentColor" stroke-width="6" stroke-linejoin="round" />
-      <path d="M60 50q3 9 12 12q-9 3-12 12q-3-9-12-12q9-3 12-12Z" fill="#FFFFFF" />
+      <rect width="100" height="100" rx="24" fill="#0B0B0D" />
+      {pill(-92, -45, '#FFFFFF')}
+      {pill(92, 45, '#FF5C7A')}
     </svg>
   );
 }

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/icons/icon-512.png" width="112" alt="Sweatshot app icon: a mango sweat drop with a sparkle">
+  <img src="public/icons/icon-512.png" width="112" alt="Sweatshot app icon: a white and a coral pill crossing into a heart">
 </p>
 
 <h1 align="center">Sweatshot</h1>
@@ -52,12 +52,12 @@ No file yet? Tap **Try a sample workout** on the home screen.
 | Design | What it is |
 | --- | --- |
 | **Summary** | Big title, your stats in tidy tiles, optional heart-rate line. |
-| **Hero number** | One giant number does the talking. |
+| **Hero number** | One big number. |
 | **Heart trace** | Your heart rate as one clean line, peak and average marked. |
 | **Zones** | Zone minutes and time in each heart-rate zone, Google Health style. |
 | **Messages** | Your workout as a text bubble. |
-| **Receipt** | A till receipt for your effort. |
-| **Editorial** | Magazine-style serif, calm and classy. |
+| **Receipt** | Looks like a shop receipt. |
+| **Editorial** | Elegant, like a magazine page. |
 | **Sticker pill** | A compact pill to drop on any photo. |
 | **Widgets** | Your stats as a stack of phone widgets. |
 | **Poster** | Bold type and a giant sport glyph, made for a story. |
@@ -128,7 +128,7 @@ npm run preview   # serve the production build (service worker included)
 ```
 
 - `npm run fixtures` regenerates the synthetic TCX files in `tests/fixtures/`.
-- `npm run icons` regenerates the app icons in `public/` from the sweat-drop mark.
+- `npm run icons` regenerates the app icons in `public/` from the heart mark.
 - `SWEATSHOT_PREVIEW=1 npm test` writes every rendered card to `tests/output/` so you can look at them.
 - Real exports for local testing go in `tests/fixtures/private/` (gitignored, never committed).
 

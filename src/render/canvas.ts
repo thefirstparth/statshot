@@ -217,44 +217,35 @@ export function seededRandom(seed: number): () => number {
 // ── Logo ──────────────────────────────────────────────────────────────────────
 
 export const BRAND = 'Sweatshot';
-export const BRAND_ORANGE = '#FFB547';
+export const BRAND_INK = '#0B0B0D';
+export const BRAND_WHITE = '#FFFFFF';
+export const BRAND_CORAL = '#FF5C7A';
 
-/** Sweat-drop outline in a unit box (tip at the top). */
-export function dropPath(ctx: Ctx, x: number, y: number, size: number): void {
-  const w = size * 0.78; // the drop is narrower than it is tall
+/**
+ * The Sweatshot heart: two pills crossing at 45°, the right one on top. Drawn centred in a
+ * size×size square. `right` defaults to `left` for a one-colour mark.
+ */
+export function drawHeartMark(ctx: Ctx, x: number, y: number, size: number, left: string, right = left): void {
+  // Proportions from the 1024 px icon: pills 250×500, centres 184 apart, heart 714×530.
+  const k = size / 714;
   const cx = x + size / 2;
-  const r = w / 2;
-  const cy = y + size - r;
-  ctx.beginPath();
-  ctx.moveTo(cx, y);
-  ctx.bezierCurveTo(cx + r * 0.25, y + size * 0.16, cx + r, cy - r * 0.9, cx + r, cy);
-  ctx.arc(cx, cy, r, 0, Math.PI, false);
-  ctx.bezierCurveTo(cx - r, cy - r * 0.9, cx - r * 0.25, y + size * 0.16, cx, y);
-  ctx.closePath();
-}
-
-/** Four-point spark (the "shot" flash) centred on cx, cy. */
-export function sparkPath(ctx: Ctx, cx: number, cy: number, r: number): void {
-  const k = r * 0.28;
-  ctx.beginPath();
-  ctx.moveTo(cx, cy - r);
-  ctx.quadraticCurveTo(cx + k, cy - k, cx + r, cy);
-  ctx.quadraticCurveTo(cx + k, cy + k, cx, cy + r);
-  ctx.quadraticCurveTo(cx - k, cy + k, cx - r, cy);
-  ctx.quadraticCurveTo(cx - k, cy - k, cx, cy - r);
-  ctx.closePath();
-}
-
-/** The drop glyph with its spark, drawn into a size×size square. */
-export function drawLogoGlyph(ctx: Ctx, x: number, y: number, size: number, color: string, spark?: string): void {
-  dropPath(ctx, x, y, size);
-  ctx.fillStyle = color;
-  ctx.fill();
-  if (spark) {
-    sparkPath(ctx, x + size * 0.6, y + size * 0.62, size * 0.17);
-    ctx.fillStyle = spark;
+  const cy = y + size / 2;
+  const pill = (dx: number, rot: number, fill: string) => {
+    ctx.save();
+    ctx.translate(cx + dx * k, cy);
+    ctx.rotate(rot);
+    roundRectPath(ctx, -125 * k, -250 * k, 250 * k, 500 * k, 125 * k);
+    ctx.fillStyle = fill;
     ctx.fill();
-  }
+    ctx.restore();
+  };
+  pill(-92, -Math.PI / 4, left);
+  pill(92, Math.PI / 4, right);
+}
+
+/** The heart glyph in one colour, for the small mark on cards. */
+export function drawLogoGlyph(ctx: Ctx, x: number, y: number, size: number, color: string): void {
+  drawHeartMark(ctx, x, y, size, color);
 }
 
 export function measureLogo(ctx: Ctx, size: number, family = SANS, style: 'normal' | 'italic' = 'normal'): number {

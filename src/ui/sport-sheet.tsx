@@ -31,7 +31,7 @@ export function SportSheet({ currentId, recent, onPick, onClose }: Props) {
   };
 
   return (
-    <Sheet title="What did you play?" onClose={onClose} class="sheet-tall sheet-sports">
+    <Sheet title="What was this workout?" onClose={onClose} class="sheet-tall sheet-sports">
       <div class="search">
         <Icon name="search" />
         <input

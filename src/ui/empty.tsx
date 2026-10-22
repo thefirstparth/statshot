@@ -91,12 +91,12 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
 
       <footer class="footer">
         <p>
-          Your file is read on this device only and isn’t kept. Only your settings and favourites are saved on this
-          phone. Not affiliated with Google or Fitbit.
+          Your file is read on this device only and isn’t kept. Only your settings, favourite designs and recently
+          used sports are saved on this phone. Not affiliated with Google or Fitbit.
         </p>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="code" />
-          Source code
+          Source code (opens GitHub)
         </a>
       </footer>
     </main>

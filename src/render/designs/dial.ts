@@ -80,11 +80,14 @@ export const dial: CardDesign = {
     ctx.fillStyle = c.faint;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    for (const h of [0, 6, 12, 18]) {
+    // Match the clock labels to the time format on the card.
+    const twelve = /[AP]M$/.test(data.timeText);
+    const marks = twelve ? ['12 AM', '6 AM', '12 PM', '6 PM'] : ['00', '06', '12', '18'];
+    [0, 6, 12, 18].forEach((h, i) => {
       const a = angle(h * 60);
-      const r = R - 76;
-      ctx.fillText(String(h).padStart(2, '0'), cx + r * Math.cos(a), cy + r * Math.sin(a));
-    }
+      const r = R - (twelve ? 92 : 76);
+      ctx.fillText(marks[i], cx + r * Math.cos(a), cy + r * Math.sin(a));
+    });
     ctx.textBaseline = 'alphabetic';
 
     // The session arc.

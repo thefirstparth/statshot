@@ -44,7 +44,7 @@ function layout(data: CardData, opts: CardOptions) {
 export const hero: CardDesign = {
   id: 'hero',
   name: 'Hero number',
-  blurb: 'One giant number does the talking',
+  blurb: 'One big number',
   floating: true,
   supportsAccent: true,
 

@@ -85,7 +85,7 @@ export function WorkoutSheet({
       </div>
       <div class="field">
         <label class="field-label" for="title-input">
-          Title <span class="field-note">· optional</span>
+          Title <span class="field-note">· optional, up to {MAX_TITLE} characters</span>
         </label>
         <input
           id="title-input"
@@ -229,6 +229,9 @@ export function SettingsSheet({
       </section>
 
       <div class="sheet-actions">
+        <button type="button" class="btn btn-primary" onClick={onClose}>
+          Done
+        </button>
         <button
           type="button"
           class={`btn ${confirmReset ? 'btn-danger' : 'btn-secondary'}`}
@@ -243,7 +246,10 @@ export function SettingsSheet({
       </div>
       <p class="fine-print">
         Settings stay on this device. Your workout file is never uploaded, and it isn’t kept after you close the app.
-        Not affiliated with Google or Fitbit. <a href={REPO_URL} target="_blank" rel="noopener noreferrer">Source code</a>
+        Not affiliated with Google or Fitbit.{' '}
+        <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
+          Source code (opens GitHub)
+        </a>
       </p>
     </Sheet>
   );
@@ -302,7 +308,7 @@ export function EditSheet({
         note={SIZE_NOTES[prefs.size]}
         value={prefs.size}
         options={[
-          { value: 'sticker', label: 'Card' },
+          { value: 'sticker', label: 'Card only' },
           { value: 'story', label: 'Story' },
           { value: 'post', label: 'Post' },
           { value: 'square', label: 'Square' },
@@ -310,7 +316,7 @@ export function EditSheet({
         onChange={(size) => onChange({ size })}
       />
       <Segmented
-        label="Card colours"
+        label="Colours"
         value={themeLocked ? 'light' : prefs.theme}
         disabled={themeLocked}
         note={themeLocked ? `${design.name} is always light` : undefined}
@@ -322,7 +328,7 @@ export function EditSheet({
       />
       <Segmented
         label="Background"
-        note={prefs.background === 'transparent' ? 'no background, to put on your own photo' : undefined}
+        note="See-through means no background, to put on your own photo"
         value={prefs.background}
         options={[
           { value: 'solid', label: 'Solid' },
