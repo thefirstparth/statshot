@@ -5,6 +5,16 @@ import { Icon } from './icon';
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// The control that had focus before a sheet opened. Captured on focus (not at mount), because
+// opening a sheet makes the page behind inert, which drops focus to <body> first.
+let lastOutside: HTMLElement | null = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', (e) => {
+    const t = e.target as HTMLElement;
+    if (t && !t.closest?.('.sheet-layer')) lastOutside = t;
+  });
+}
+
 export const reducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -41,7 +51,8 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   };
 
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    const previous = active && active !== document.body && !active.closest('.sheet-layer') ? active : lastOutside;
     const el = ref.current;
     const first = el?.querySelector<HTMLElement>('[data-autofocus]') ?? el;
     first?.focus({ preventScroll: true });

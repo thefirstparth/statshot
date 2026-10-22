@@ -235,6 +235,7 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
             type="button"
             aria-current={i === visual ? 'true' : undefined}
             aria-label={`Show ${d.name}`}
+            tabIndex={-1}
             class={`dot${i === visual ? ' is-on' : ''}${favourites.includes(d.id) ? ' is-fav' : ''}`}
             onClick={() => goTo(i)}
           />

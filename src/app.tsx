@@ -419,8 +419,9 @@ export function App() {
     setError(null);
     selectWorkout([sampleWorkout()], 0);
     setSportId('pickleball');
+    setTitle('Sample pickleball');
     setSheet(null);
-    showToast('This is a made-up sample. Open your own file any time.');
+    showToast('This is a made-up sample. To use your own, tap the title at the top.');
   };
 
   const onStar = (id: string) => {
@@ -519,14 +520,7 @@ export function App() {
           </button>
         </header>
         {!hasHr && <p class="note">{NOTE_NO_HR} Heart-rate designs are hidden.</p>}
-        {zonesLocked && design.needsZones && (
-          <p class="note">
-            Zones need your resting heart rate and age.{' '}
-            <button type="button" class="link-btn" onClick={() => setSheet('settings')}>
-              Open settings
-            </button>
-          </p>
-        )}
+
 
         <main class="stage" inert={customizing}>
           <Carousel

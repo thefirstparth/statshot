@@ -73,11 +73,15 @@ export const poster: CardDesign = {
       drawFitText(ctx, big.value, x + PAD - 6, bottom, inner + 6, { family: DISPLAY, weight: 800, size: BIG }, p.text, 'left', 0.35);
       bottom -= BIG * 0.86;
     }
-    setFont(ctx, { family: DISPLAY, weight: 800, size: TITLE });
-    const titleLines = wrapText(ctx, data.title, inner, 2);
-    const titleSize = titleLines.length > 1 ? TITLE * 0.78 : TITLE;
-    setFont(ctx, { family: DISPLAY, weight: 800, size: titleSize });
-    const fitted = wrapText(ctx, data.title, inner, 2);
+    // Biggest size at which the title fits on at most two lines without cutting a word.
+    let titleSize = TITLE;
+    let fitted: string[] = [];
+    for (const k of [1, 0.78, 0.62, 0.5]) {
+      titleSize = TITLE * k;
+      setFont(ctx, { family: DISPLAY, weight: 800, size: titleSize });
+      fitted = wrapText(ctx, data.title, inner, 2);
+      if (!fitted.some((l) => l.endsWith('…'))) break;
+    }
     for (let i = fitted.length - 1; i >= 0; i--) {
       ctx.fillStyle = p.text;
       ctx.textAlign = 'left';

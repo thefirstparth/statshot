@@ -60,7 +60,7 @@ export const zones: CardDesign = {
     const numW = drawFitText(ctx, big, x - 4, y + BIG * 0.8, w * 0.55, { family: DISPLAY, weight: 800, size: BIG }, c.ink, 'left', 0.5);
     const lx = x + numW + 28;
     drawFitText(ctx, 'zone minutes', lx, y + BIG * 0.8 - 52, w - (lx - x), { family: SANS, weight: 700, size: 44 }, c.ink);
-    drawFitText(ctx, `${formatDuration(data.durationSec)} total`, lx, y + BIG * 0.8, w - (lx - x), { family: SANS, weight: 400, size: 30 }, c.muted);
+    drawFitText(ctx, `Moderate or harder, of ${formatDuration(data.durationSec)}`, lx, y + BIG * 0.8, w - (lx - x), { family: SANS, weight: 400, size: 30 }, c.muted);
     y += BIG * 0.85 + 44;
 
     // Proportional bar.

@@ -30,7 +30,7 @@ export type ParseResult =
   | { ok: false; error: string };
 
 export const ERR_NOT_TCX =
-  "This isn't a workout file from Google Health. In Google Health, open your workout, tap the three dots (⋯), tap Export, and open that file here.";
+  "This app needs a .tcx workout file. In Google Health, open your workout, tap the three dots (⋯), tap Export, and open that file here.";
 export const ERR_EMPTY = 'This file is empty. Export the workout from Google Health again and open the new file.';
 export const ERR_DAMAGED =
   'This workout file is damaged or cut off. Export the workout from Google Health again and open the new file.';

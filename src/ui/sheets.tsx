@@ -178,7 +178,13 @@ export function SettingsSheet({
           min={100}
           max={230}
           suffix="bpm"
-          note={maxHr ? `Using ${maxHr} bpm.` : 'If you leave this empty, we estimate it from your age.'}
+          note={
+            maxHr
+              ? prefs.maxHrOverride
+                ? `Max heart rate used: ${maxHr} bpm.`
+                : `Max heart rate used: ${maxHr} bpm (estimated from your age).`
+              : 'If you leave this empty, we estimate it from your age.'
+          }
         />
         <p class={`zone-status${zonesReady ? ' is-ready' : ''}`} role="status">
           <Icon name={zonesReady ? 'check' : 'lock'} />
@@ -246,10 +252,10 @@ export function SettingsSheet({
 // ── Customize ────────────────────────────────────────────────────────────────
 
 const SIZE_NOTES: Record<SizeKey, string> = {
-  sticker: 'just the card, to paste on a story or photo',
-  story: 'fills a phone screen, for stories',
-  post: 'tall post for a feed',
-  square: 'square post',
+  sticker: 'only the card, to paste on a story or photo',
+  story: 'tall, fills a phone screen',
+  post: 'a little taller than square, for a feed post',
+  square: 'square, for a feed post',
 };
 
 export function EditSheet({
@@ -297,8 +303,8 @@ export function EditSheet({
         value={prefs.size}
         options={[
           { value: 'sticker', label: 'Card' },
-          { value: 'story', label: 'Story 9:16' },
-          { value: 'post', label: 'Post 4:5' },
+          { value: 'story', label: 'Story' },
+          { value: 'post', label: 'Post' },
           { value: 'square', label: 'Square' },
         ]}
         onChange={(size) => onChange({ size })}
@@ -362,8 +368,7 @@ export function EditSheet({
 
       <button type="button" class="row-btn" onClick={onOpenDesigns}>
         <Icon name="grid_view" />
-        <span class="row-btn-text">See all designs</span>
-        <span class="row-btn-action">Star favourites</span>
+        <span class="row-btn-text">See all designs and pick favourites</span>
       </button>
 
       <div class="sheet-actions">

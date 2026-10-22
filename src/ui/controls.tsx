@@ -19,22 +19,28 @@ export function Segmented<T extends string>({
   disabled?: boolean;
   note?: string;
 }) {
+  const segId = `seg-${label.replace(/\W+/g, '-').toLowerCase()}`;
   return (
     <div class={`field${disabled ? ' is-disabled' : ''}`}>
-      <div class="field-label" id={`seg-${label}`}>
+      <div class="field-label" id={segId}>
         {label}
         {note && <span class="field-note"> · {note}</span>}
       </div>
       <div
         class="segmented"
         role="radiogroup"
-        aria-labelledby={`seg-${label}`}
+        aria-labelledby={segId}
         onKeyDown={(e) => {
-          const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
-          if (!step || disabled) return;
-          e.preventDefault();
           const i = options.findIndex((o) => o.value === value);
-          const next = options[(i + step + options.length) % options.length];
+          const target =
+            e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % options.length
+            : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + options.length) % options.length
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? options.length - 1
+            : -1;
+          if (target < 0 || disabled) return;
+          e.preventDefault();
+          const next = options[target];
           onChange(next.value);
           const group = e.currentTarget as HTMLElement;
           requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());

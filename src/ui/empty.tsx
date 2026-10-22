@@ -25,15 +25,15 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
 
       <div class="collage" aria-hidden="true">
         <span class="collage-sticker c1">
-          <SportSticker sport={sportById('table-tennis')} size={64} rotate={false} />
-          <b>1h 51m</b>
+          <SportSticker sport={sportById('pickleball')} size={64} rotate={false} />
+          <b>52m</b>
         </span>
-        <span class="collage-pill c2">496 kcal</span>
+        <span class="collage-pill c2">418 kcal</span>
         <span class="collage-card c3">
           <small>avg heart rate</small>
-          <b>112 bpm</b>
+          <b>130 bpm</b>
         </span>
-        <span class="collage-pill c4">Tue 20 Oct · 02:02</span>
+        <span class="collage-pill c4">Pickleball · Tue</span>
         <span class="collage-caption">Example</span>
       </div>
 
@@ -90,7 +90,10 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
       </section>
 
       <footer class="footer">
-        <p>Your file is read on this device only. Not affiliated with Google or Fitbit.</p>
+        <p>
+          Your file is read on this device only and isn’t kept. Only your settings and favourites are saved on this
+          phone. Not affiliated with Google or Fitbit.
+        </p>
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
           <Icon name="code" />
           Source code

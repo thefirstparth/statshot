@@ -1459,9 +1459,7 @@ button:disabled {
   height: 1em;
 }
 
-.dot.is-fav::after {
-  background: #e8a020;
-}
+
 
 .design-bar .btn {
   white-space: nowrap;
