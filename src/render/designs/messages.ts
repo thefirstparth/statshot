@@ -20,7 +20,7 @@ const GAP = 10;
 /** "1h 51m of table tennis, 496 kcal, avg 112 bpm" */
 export function statSentence(data: CardData, stats: StatItem[]): string {
   const duration = stats.find((s) => s.key === 'duration');
-  const rest = stats.filter((s) => s.key !== 'duration').map((s) => s.phrase);
+  const rest = stats.filter((s) => s.key !== 'duration').map((s) => s.phrase.replace(/ (kcal|bpm|km|mi|min)\b/g, '\u00A0$1'));
   if (duration) return [`${duration.value} of ${data.sportLower}`, ...rest].join(', ');
   if (rest.length === 0) return `${data.sportName} done`;
   const [first, ...more] = rest;

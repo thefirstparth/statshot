@@ -145,7 +145,8 @@ export function drawFitText(
 
 /** Greedy word wrap (current ctx.font). Long words are ellipsized. */
 export function wrapText(ctx: Ctx, text: string, maxWidth: number, maxLines = 6): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
+  // Plain spaces only: a no-break space keeps "126 kcal" together.
+  const words = text.split(/[ \t\n]+/).filter(Boolean);
   const lines: string[] = [];
   let line = '';
   for (const word of words) {
