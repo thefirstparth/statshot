@@ -61,7 +61,7 @@ export function SportSheet({ currentId, recent, onPick, onClose }: Props) {
             <span class="custom-badge">
               <Icon name="edit" />
             </span>
-            <span>Use “{q}”</span>
+            <span>Use “{Array.from(q).length > 18 ? Array.from(q).slice(0, 17).join('') + '…' : q}”</span>
           </button>
         </div>
       ) : (

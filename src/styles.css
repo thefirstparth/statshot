@@ -2212,3 +2212,31 @@ button:disabled {
 .round-action[aria-disabled='true'] {
   opacity: 0.45;
 }
+
+/* The three promises always fit on one line, even on a 320px phone. */
+.promises {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.promises li {
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  padding: 8px 2px;
+  font-size: clamp(10px, 3.3vw, 14px);
+  line-height: 1.15;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.promises .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sport-tile span {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}

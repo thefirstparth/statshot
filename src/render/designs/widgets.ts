@@ -25,7 +25,7 @@ function layout(data: CardData, opts: CardOptions) {
   const [first, ...rest] = visibleStats(data, opts);
   const minis = rest.map(toMini);
   // The right column always holds two widgets; the date fills a gap.
-  const dateMini: Mini = { icon: 'schedule-fill', value: data.timeText, label: `${data.weekday} ${data.shortDate}` };
+  const dateMini: Mini = { icon: 'schedule-fill', value: `${data.weekday} ${data.shortDate}`, label: 'Date' };
   while (minis.length < 2) minis.push(dateMini);
   const side = minis.slice(0, 2);
   const extra = minis.slice(2);

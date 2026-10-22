@@ -37,6 +37,20 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   const [drag, setDrag] = useState(0);
   const dragStart = useRef<{ y: number; t: number } | null>(null);
   const openedAt = useRef(performance.now());
+  // Ignore taps for a moment after opening, so a fast double tap on the opener can't change a setting.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 350);
+    return () => clearTimeout(t);
+  }, []);
+  // Escape closes the sheet even when focus has fallen back to the page body.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !ref.current?.contains(e.target as Node)) close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -129,7 +143,10 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        style={drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : undefined}
+        style={{
+          ...(drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : {}),
+          ...(armed ? {} : { pointerEvents: 'none' as const }),
+        }}
       >
         <div
           class="sheet-grip"

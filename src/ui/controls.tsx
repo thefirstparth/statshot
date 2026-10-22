@@ -175,7 +175,8 @@ export function NumberField({
             setText(raw);
             if (raw === '') return onChange(null);
             const n = Number(raw);
-            if (Number.isFinite(n) && n >= min && n <= max) onChange(Math.round(n));
+            // An out-of-range value clears the setting, so nothing silently keeps using the old number.
+            onChange(Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : null);
           }}
           aria-invalid={invalid}
           aria-describedby={invalid ? `${id}-err` : undefined}
