@@ -20,7 +20,7 @@ Runs on your phone. Never uploads your file. Works offline. No account.</p>
 
 <p align="center"><img src="docs/screens.png" alt="Sweatshot screens: home, sport picker, design carousel with Save and Copy, and the Customize sheet" width="100%"></p>
 
-Google Health (and the Fitbit Air) records your workouts beautifully, but it can't share one as an image. It can export a `.tcx` file, though. **Sweatshot reads that file in your browser and turns it into a clean, story-ready picture in about three taps.** Pick from eleven designs, star your favourites, choose which numbers to show, and save, copy or share a PNG. A clear (transparent) version drops straight onto your own photo.
+Google Health (and the Fitbit Air) records your workouts beautifully, but it can't share one as an image. It can export a `.tcx` file, though. **Sweatshot reads that file in your browser and turns it into a clean, story-ready picture in about three taps.** Pick from eleven designs, star your favourites, choose which numbers to show, and save, copy or share a PNG. A see-through version drops straight onto your own photo.
 
 > Not affiliated with Google or Fitbit. "Google Health" and "Fitbit" are named only to say which exports work.
 
@@ -32,8 +32,8 @@ Google Health (and the Fitbit Air) records your workouts beautifully, but it can
 | --- | --- |
 | **1. Export** | In Google Health, open the workout, tap ⋯, then **Export**, and save the file to Files. |
 | **2. Open** | In Sweatshot, tap **Open workout file** and pick it. Your phone reads it; nothing leaves the device. |
-| **3. Pick the sport** | The file just says "Other", so tap what you played: table tennis, pickleball, a walk, the gym, 35 sports in all, or type your own. |
-| **4. Share** | Swipe through the designs, tap **Customize** if you like, then **Save image**, **Copy image** or **Share**. |
+| **3. Pick the sport** | The file just says "Other", so tap what you did: table tennis, pickleball, a walk, the gym, 35 sports in all, or type your own. Walks and runs are pre-selected from your pace. |
+| **4. Share** | Swipe through the designs, flip **Card only / Story**, tap **Customize** for more, then **Save image**, **Copy image** or **Share**. |
 
 No file yet? Tap **Try a sample workout** on the home screen.
 
@@ -63,7 +63,7 @@ No file yet? Tap **Try a sample workout** on the home screen.
 | **Poster** | Bold type and a giant sport glyph, made for a story. |
 | **Day dial** | When you played, on a quiet 24-hour clock. |
 
-Every design comes in **light or dark**, on a **solid or clear** background, as **just the card** (the default, best for pasting onto a story or photo) or **Story 1080×1920, Post 1080×1350 or Square 1080×1080**. Star up to **five favourites** and they come first.
+Every design comes in **light or dark**, on a **solid or see-through** background, as **Card only** (the default: cropped tight to the design, best for pasting onto a story or photo) or **Story 1080×1920, Post 1080×1350 or Square 1080×1080**. Card only and Story are one tap away under the preview; the rest are in Customize. Star up to **five favourites** and they come first (starring a sixth swaps out your oldest).
 
 **Numbers you can show:** duration, energy, average / peak / lowest heart rate, zone minutes, distance (walks and runs) and time of day. Add where you played if you want it on the card.
 
@@ -73,10 +73,17 @@ Sweatshot is a static website with **no server, no database, no analytics and no
 
 - Your file is read with JavaScript **on your device**. It is never uploaded, and it isn't stored either: close the tab and it's gone.
 - The production build ships a **Content Security Policy** that only allows the app's own origin, so even a bug couldn't send your data anywhere.
-- Only your preferences (favourite designs, colours, resting heart rate and age for zones) are saved, in your browser's local storage. **Settings → Reset** clears them.
+- Only your preferences (settings, favourite designs, recent sports and how you last set up a card, plus resting heart rate and age if you use zones) are saved, in your browser's local storage. **Settings → Reset all settings** clears them.
 - After the first visit a service worker caches the app, so it **works in airplane mode**.
 
 Don't take our word for it: the code is all here, and your browser's network panel will show zero requests while you use it.
+
+## Built for everyone
+
+- Works on small phones (down to 320px wide), in landscape, and on desktop with drag-and-drop.
+- Full keyboard support, screen-reader labels (each card preview is described, numbers included), and reduced-motion support.
+- The app follows your phone's light or dark mode, or set it yourself in Settings.
+- Plain-language messages: a wrong, empty or damaged file tells you exactly what to do next.
 
 ## Heart-rate zones
 
@@ -109,7 +116,7 @@ Heart-rate reserve is *max − resting*. **Zone minutes** count moderate minutes
 
 **My numbers differ by a minute or a beat from Google Health.** Durations are rounded to the minute like Google Health, but averages are computed from the raw samples in the file, so tiny differences can happen.
 
-**Why does it say "Card only"?** That's the image cropped tight to the design, the easiest to paste onto an Instagram story or your own photo and resize. Choose Story, Post or Square in Customize for a full-size image.
+**Why does it say "Card only"?** That's the image cropped tight to the design, the easiest to paste onto an Instagram story or your own photo and resize. Tap **Story** under the preview for a full 1080×1920 image, or pick Post or Square in Customize.
 
 **Can I remove the little Sweatshot mark?** Yes: Customize → **Show Sweatshot mark**.
 
