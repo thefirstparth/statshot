@@ -1,7 +1,7 @@
 import preact from '@preact/preset-vite';
 import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
-import { tablerIcons } from './build/icons-plugin.ts';
+import { materialIcons } from './build/icons-plugin.ts';
 
 /**
  * Production-only Content Security Policy: everything comes from this origin, so the browser
@@ -23,7 +23,7 @@ const CSP = [
 
 function csp(): Plugin {
   return {
-    name: 'statshot-csp',
+    name: 'sweatshot-csp',
     apply: 'build',
     transformIndexHtml(html) {
       return html.replace(
@@ -37,7 +37,7 @@ function csp(): Plugin {
 export default defineConfig({
   plugins: [
     preact(),
-    tablerIcons(),
+    materialIcons(),
     csp(),
     VitePWA({
       strategies: 'injectManifest',
@@ -51,15 +51,15 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,woff2}', 'icons/apple-touch-icon.png'],
       },
       manifest: {
-        name: 'Statshot',
-        short_name: 'Statshot',
-        description: 'Turn a workout export (.tcx) into a share image.',
+        name: 'Sweatshot',
+        short_name: 'Sweatshot',
+        description: 'Turn a Google Health workout into a shareable picture. Runs on your phone, never uploads.',
         display: 'standalone',
         start_url: '/',
         scope: '/',
         orientation: 'portrait',
-        theme_color: '#101114',
-        background_color: '#101114',
+        theme_color: '#FFF4E4',
+        background_color: '#FFF4E4',
         icons: [
           { src: '/icons/icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: '/icons/icon-512.png', sizes: '512x512', type: 'image/png' },

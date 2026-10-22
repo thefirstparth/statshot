@@ -7,26 +7,47 @@ export type StatKey =
   | 'energy'
   | 'avgHr'
   | 'maxHr'
-  | 'activeMin'
+  | 'minHr'
+  | 'zoneMin'
   | 'distance'
-  | 'cardioLoad';
+  | 'timeRange';
 
-/** Fixed order of the stat toggles (and of stats on the card). */
+/** Order of the stat stickers in the tray. */
 export const STAT_ORDER: StatKey[] = [
   'duration',
   'energy',
   'avgHr',
   'maxHr',
-  'activeMin',
+  'minHr',
+  'zoneMin',
   'distance',
-  'cardioLoad',
+  'timeRange',
 ];
+
+/** Most stats a card shows at once. */
+export const MAX_STATS = 6;
 
 export type StatItem = {
   key: StatKey;
-  label: string; // "Avg HR"
+  label: string; // "Avg heart rate"
+  short: string; // "Avg HR" (tight layouts)
   value: string; // "112 bpm"
+  number: string; // "112" (big-number layouts)
+  unit: string; // "bpm" ("" when the number says it all, e.g. "1h 51m")
   phrase: string; // for sentences: "avg 112 bpm"
+};
+
+/** Heart-rate-reserve zones, Google Health style. Minutes per zone. */
+export type ZoneMinutes = {
+  light: number;
+  moderate: number;
+  vigorous: number;
+  peak: number;
+  /** Moderate counts once, vigorous and peak count double. */
+  zoneMinutes: number;
+  /** Inputs used, so cards can print the bpm ranges. */
+  restingHr: number;
+  maxHr: number;
 };
 
 export type CardData = {
@@ -36,15 +57,22 @@ export type CardData = {
   dateText: string; // "Tue, 20 Oct 2026"
   shortDate: string; // "20 Oct"
   fullDate: string; // "20 Oct 2026"
+  weekday: string; // "Tue"
   timeText: string; // "02:02"
-  sportIcon: string; // Tabler icon name
+  endTimeText: string; // "03:53"
+  startMin: number; // minutes after midnight, wall clock as written
+  sportId: string;
+  sportIcon: string; // icon name (see virtual:icons)
+  sportColors: { bg: string; fg: string; strong: string };
+  location: string; // "" when not set
   stats: Partial<Record<StatKey, StatItem>>;
   hrSeries: HrSample[]; // downsampled + smoothed
   durationSec: number;
   avgHr: number | null;
   maxHr: number | null;
-  zoneMinutes: number[] | null; // null when max HR is unknown
-  cardioLoad?: number;
+  minHr: number | null;
+  distanceText: string | null; // "3.42 km"
+  zones: ZoneMinutes | null; // null until resting HR + age (or max HR) are set
   seed: number; // deterministic randomness (receipt edges, noise)
 };
 
@@ -56,7 +84,7 @@ export type CardOptions = {
   background: Background;
   accent: string; // hex
   stats: StatKey[]; // ordered, user-selected
-  showLogo: boolean;
+  showLogo: boolean; // the small Sweatshot mark
   showGraph: boolean;
 };
 
@@ -70,6 +98,10 @@ export interface CardDesign {
   supportsAccent: boolean;
   supportsGraph?: boolean;
   supportsTheme?: boolean; // default true; Receipt is always light
+  /** One line for the design picker. */
+  blurb: string;
+  /** Text drawn straight on the background (no panel): gets a soft shadow when see-through. */
+  floating?: boolean;
   defaultAccent?: string;
   /** Canvas fill when the background is "solid". */
   background(opts: CardOptions): string;

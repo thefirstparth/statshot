@@ -1,18 +1,31 @@
-import { block } from './designs/block';
+import { dial } from './designs/dial';
 import { editorial } from './designs/editorial';
-import { glass } from './designs/glass';
+import { hero } from './designs/hero';
 import { messages } from './designs/messages';
-import { midnight } from './designs/midnight';
-import { pulse } from './designs/pulse';
+import { pill } from './designs/pill';
+import { poster } from './designs/poster';
 import { receipt } from './designs/receipt';
+import { summary } from './designs/summary';
+import { trace } from './designs/trace';
+import { widgets } from './designs/widgets';
 import { zones } from './designs/zones';
 import type { CardDesign } from './types';
 
-export const DEFAULT_ACCENT = '#FF6B35';
-export const ACCENTS = ['#FF6B35', '#FFD60A', '#3DDC97', '#4CC9F0', '#0A84FF', '#FF4D8D', '#FFFFFF'];
+export const DEFAULT_ACCENT = '#FFB547';
+export const ACCENTS = ['#FFB547', '#FF6B35', '#FF4D8D', '#3DDC97', '#4CC9F0', '#0A84FF', '#B18CFF', '#FFFFFF'];
+export const ACCENT_NAMES: Record<string, string> = {
+  '#FFB547': 'Mango',
+  '#FF6B35': 'Orange',
+  '#FF4D8D': 'Pink',
+  '#3DDC97': 'Mint',
+  '#4CC9F0': 'Sky',
+  '#0A84FF': 'Blue',
+  '#B18CFF': 'Lilac',
+  '#FFFFFF': 'White',
+};
 
-/** Carousel order. */
-export const DESIGNS: CardDesign[] = [glass, midnight, block, receipt, editorial, messages, pulse, zones];
+/** Catalogue order (the picker shows favourites first, then this order). */
+export const DESIGNS: CardDesign[] = [summary, hero, trace, zones, messages, receipt, editorial, pill, widgets, poster, dial];
 
 export function designById(id: string): CardDesign {
   return DESIGNS.find((d) => d.id === id) ?? DESIGNS[0];

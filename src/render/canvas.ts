@@ -133,7 +133,7 @@ export function drawFitText(
   f: FontSpec,
   color: string,
   align: CanvasTextAlign = 'left',
-  minScale = 0.6,
+  minScale = 0.5,
 ): number {
   const fitted = fitText(ctx, text, maxWidth, f, minScale);
   ctx.fillStyle = color;
@@ -145,7 +145,8 @@ export function drawFitText(
 
 /** Greedy word wrap (current ctx.font). Long words are ellipsized. */
 export function wrapText(ctx: Ctx, text: string, maxWidth: number, maxLines = 6): string[] {
-  const words = text.split(/\s+/).filter(Boolean);
+  // Plain spaces only: a no-break space keeps "126 kcal" together.
+  const words = text.split(/[ \t\n]+/).filter(Boolean);
   const lines: string[] = [];
   let line = '';
   for (const word of words) {
@@ -216,29 +217,46 @@ export function seededRandom(seed: number): () => number {
 
 // ── Logo ──────────────────────────────────────────────────────────────────────
 
-/** The 3-bar glyph, drawn with paths into a size×size square. */
-export function drawLogoGlyph(ctx: Ctx, x: number, y: number, size: number, color: string): void {
-  const barW = size * 0.24;
-  const gap = (size - barW * 3) / 2;
-  const heights = [0.5, 0.75, 1];
-  ctx.fillStyle = color;
-  heights.forEach((hf, i) => {
-    const h = size * hf;
-    roundRectPath(ctx, x + i * (barW + gap), y + size - h, barW, h, barW * 0.45);
+export const BRAND = 'Sweatshot';
+export const BRAND_INK = '#0B0B0D';
+export const BRAND_WHITE = '#FFFFFF';
+export const BRAND_CORAL = '#FF5C7A';
+
+/**
+ * The Sweatshot heart: two pills crossing at 45°, the right one on top. Drawn centred in a
+ * size×size square. `right` defaults to `left` for a one-colour mark.
+ */
+export function drawHeartMark(ctx: Ctx, x: number, y: number, size: number, left: string, right = left): void {
+  // Proportions from the 1024 px icon: pills 250×500, centres 184 apart, heart 714×530.
+  const k = size / 714;
+  const cx = x + size / 2;
+  const cy = y + size / 2;
+  const pill = (dx: number, rot: number, fill: string) => {
+    ctx.save();
+    ctx.translate(cx + dx * k, cy);
+    ctx.rotate(rot);
+    roundRectPath(ctx, -125 * k, -250 * k, 250 * k, 500 * k, 125 * k);
+    ctx.fillStyle = fill;
     ctx.fill();
-  });
+    ctx.restore();
+  };
+  pill(-92, -Math.PI / 4, left);
+  pill(92, Math.PI / 4, right);
 }
 
-const LOGO_TEXT = 'Statshot';
+/** The heart glyph in one colour, for the small mark on cards. */
+export function drawLogoGlyph(ctx: Ctx, x: number, y: number, size: number, color: string): void {
+  drawHeartMark(ctx, x, y, size, color);
+}
 
 export function measureLogo(ctx: Ctx, size: number, family = SANS, style: 'normal' | 'italic' = 'normal'): number {
   ctx.font = font(family, 600, size, style);
-  return size * 0.78 + size * 0.36 + ctx.measureText(LOGO_TEXT).width;
+  return size * 0.9 + size * 0.3 + ctx.measureText(BRAND).width;
 }
 
 /**
- * Wordmark + glyph. `size` is the text size; the glyph matches cap height. `y` is the
- * vertical centre of the mark. Returns the drawn width.
+ * Wordmark + drop glyph. `size` is the text size; `y` is the vertical centre of the mark.
+ * Returns the drawn width.
  */
 export function drawLogo(
   ctx: Ctx,
@@ -250,13 +268,13 @@ export function drawLogo(
 ): number {
   const w = measureLogo(ctx, size);
   const left = align === 'left' ? x : align === 'center' ? x - w / 2 : x - w;
-  const glyph = size * 0.78;
-  drawLogoGlyph(ctx, left, y - glyph / 2 - size * 0.02, glyph, color);
+  const glyph = size * 0.9;
+  drawLogoGlyph(ctx, left, y - glyph / 2 - size * 0.04, glyph, color);
   ctx.font = font(SANS, 600, size);
   ctx.fillStyle = color;
   ctx.textAlign = 'left';
   ctx.textBaseline = 'alphabetic';
-  ctx.fillText(LOGO_TEXT, left + glyph + size * 0.36, y + size * 0.36);
+  ctx.fillText(BRAND, left + glyph + size * 0.3, y + size * 0.36);
   return w;
 }
 

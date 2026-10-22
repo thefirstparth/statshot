@@ -7,6 +7,16 @@ import { reducedMotion } from './sheet';
 
 const GAP = 12;
 
+/** What the card says, for screen readers. */
+function altText(design: CardDesign, data: CardData, opts: CardOptions): string {
+  const stats = opts.stats.map((k) => data.stats[k]?.value).filter(Boolean).join(', ');
+  const zones =
+    design.needsZones && data.zones
+      ? `. Zone minutes ${data.zones.zoneMinutes}: peak ${Math.round(data.zones.peak)} min, vigorous ${Math.round(data.zones.vigorous)} min, moderate ${Math.round(data.zones.moderate)} min, light ${Math.round(data.zones.light)} min`
+      : '';
+  return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${stats ? `. ${stats}` : ''}${zones}`;
+}
+
 type PreviewProps = {
   design: CardDesign;
   data: CardData;
@@ -15,10 +25,11 @@ type PreviewProps = {
   live: boolean; // render a canvas (active page ± 1)
   ready: boolean; // fonts loaded
   box: { w: number; h: number };
+  locked?: boolean;
   children?: ComponentChildren;
 };
 
-function CardPreview({ design, data, opts, size, live, ready, box, children }: PreviewProps) {
+function CardPreview({ design, data, opts, size, live, ready, box, locked, children }: PreviewProps) {
   const ref = useRef<HTMLCanvasElement>(null);
   const optsKey = JSON.stringify(opts);
   const layout = useMemo(() => canvasLayout(design, data, opts, size), [design, data, optsKey, size]);
@@ -46,7 +57,7 @@ function CardPreview({ design, data, opts, size, live, ready, box, children }: P
   return (
     <div class={`preview${transparent ? ' is-transparent' : ''}`} style={style}>
       {live && ready ? (
-        <canvas ref={ref} class="preview-canvas" role="img" aria-label={`${design.name} card preview`} />
+        <canvas ref={ref} class="preview-canvas" role="img" aria-label={locked ? `${design.name} card: locked until resting heart rate and age are set in Settings` : altText(design, data, opts)} />
       ) : (
         <div class="skeleton" aria-hidden="true" />
       )}
@@ -64,11 +75,12 @@ type Props = {
   size: SizeKey;
   ready: boolean;
   zonesLocked: boolean;
+  favourites: string[];
   onOpenSettings: () => void;
 };
 
 /** Horizontal scroll-snap carousel, one design per page, with peeking neighbours and dots. */
-export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, size, ready, zonesLocked, onOpenSettings }: Props) {
+export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, size, ready, zonesLocked, favourites, onOpenSettings }: Props) {
   const scroller = useRef<HTMLDivElement>(null);
   const [frame, setFrame] = useState({ w: 0, h: 0 }); // carousel width, preview-area height
   const [visual, setVisual] = useState(activeIndex);
@@ -165,9 +177,17 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
         aria-roledescription="carousel"
         aria-label="Card designs"
         tabIndex={0}
+        data-focus-home
         onKeyDown={(e) => {
-          if (e.key === 'ArrowRight') goTo(Math.min(designs.length - 1, visual + 1));
-          if (e.key === 'ArrowLeft') goTo(Math.max(0, visual - 1));
+          const next =
+            e.key === 'ArrowRight' ? Math.min(designs.length - 1, visual + 1)
+            : e.key === 'ArrowLeft' ? Math.max(0, visual - 1)
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? designs.length - 1
+            : null;
+          if (next === null) return;
+          e.preventDefault(); // the scroller would also scroll natively and skip a page
+          goTo(next);
         }}
       >
         {designs.map((d, i) => {
@@ -189,13 +209,14 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
                   opts={optsFor(d)}
                   size={size}
                   live={Math.abs(i - visual) <= 1}
+                  locked={locked}
                   ready={ready}
                   box={{ w: pageW, h: frame.h }}
                 >
                   {locked && (
                     <div class="lock-overlay">
-                      <Icon name="heart-rate-monitor" class="icon-lg" />
-                      <p>Add your age in Settings to see zones</p>
+                      <Icon name="monitor_heart" class="icon-lg" />
+                      <p>Zones are off. Add or check your resting heart rate and age in Settings.</p>
                       <button type="button" class="btn btn-primary" onClick={onOpenSettings} tabIndex={current ? 0 : -1}>
                         Open settings
                       </button>
@@ -203,22 +224,43 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
                   )}
                 </CardPreview>
               </div>
-              <p class="design-name">{d.needsZones ? `${d.name} (est.)` : d.name}</p>
+              <p class="design-name">
+                {favourites.includes(d.id) && <Icon name="star-fill" class="name-star" />}
+                {d.name}
+              </p>
             </section>
           );
         })}
       </div>
-      <div class="dots">
+      <p class="visually-hidden" aria-live="polite">
+        {designs[visual] ? `${designs[visual].name}, design ${visual + 1} of ${designs.length}` : ''}
+      </p>
+      <div class="dots-row">
+        <button type="button" class="nav-btn" aria-label="Previous design" aria-disabled={visual === 0} onClick={() => goTo(Math.max(0, visual - 1))}>
+          <Icon name="chevron_left" />
+        </button>
+      <div class="dots" aria-hidden="true">
         {designs.map((d, i) => (
           <button
             key={d.id}
             type="button"
             aria-current={i === visual ? 'true' : undefined}
             aria-label={`Show ${d.name}`}
-            class={`dot${i === visual ? ' is-on' : ''}`}
+            tabIndex={-1}
+            class={`dot${i === visual ? ' is-on' : ''}${favourites.includes(d.id) ? ' is-fav' : ''}`}
             onClick={() => goTo(i)}
           />
         ))}
+      </div>
+        <button
+          type="button"
+          class="nav-btn"
+          aria-label="Next design"
+          aria-disabled={visual === designs.length - 1}
+          onClick={() => goTo(Math.min(designs.length - 1, visual + 1))}
+        >
+          <Icon name="chevron_right" />
+        </button>
       </div>
     </div>
   );

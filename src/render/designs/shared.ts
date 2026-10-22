@@ -1,5 +1,6 @@
-import { drawFitText, rgba, setFont, type FontSpec } from '../canvas';
-import type { StatItem } from '../types';
+import { drawFitText, mix, rgba, setFont, visibleStats, type FontSpec } from '../canvas';
+import { drawIconPath } from '../icons';
+import type { CardData, CardDesign, StatItem, StatKey } from '../types';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -83,4 +84,69 @@ export function textWidth(ctx: Ctx, text: string, f: FontSpec): number {
 
 export function dateLine(dateText: string, timeText: string): string {
   return `${dateText} · ${timeText}`;
+}
+
+/**
+ * Temporary stand-in used while a design is being drawn: title, date and the stats as text.
+ * Each real design replaces its file wholesale.
+ */
+export function placeholderDesign(id: string, name: string, blurb: string): CardDesign {
+  const pad = 64;
+  return {
+    id,
+    name,
+    blurb,
+    supportsAccent: false,
+    background: (opts) => (opts.theme === 'dark' ? '#111214' : '#F6F7F9'),
+    measure: (_w, data, opts) => ({ h: pad * 2 + 140 + visibleStats(data, opts).length * 90 }),
+    draw(ctx, box, data, opts) {
+      const ink = opts.theme === 'dark' ? '#FFFFFF' : '#111214';
+      drawFitText(ctx, data.title, box.x + pad, box.y + pad + 70, box.w - pad * 2, { size: 72, weight: 700 }, ink);
+      visibleStats(data, opts).forEach((s, i) => {
+        drawFitText(ctx, `${s.label}: ${s.value}`, box.x + pad, box.y + pad + 200 + i * 90, box.w - pad * 2, { size: 48 }, ink);
+      });
+    },
+  };
+}
+
+/** Material Symbols icon per stat (filled variants exist for all of them). */
+export const STAT_ICONS: Record<StatKey, string> = {
+  duration: 'timer-fill',
+  energy: 'local_fire_department-fill',
+  avgHr: 'favorite-fill',
+  maxHr: 'ecg_heart-fill',
+  minHr: 'heart_minus-fill',
+  zoneMin: 'monitor_heart-fill',
+  distance: 'route-fill',
+  timeRange: 'schedule-fill',
+};
+
+/** Scalloped "cookie" sticker shape (12 soft lobes), centred on cx, cy. */
+export function cookiePath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, lobes = 12): void {
+  ctx.beginPath();
+  const steps = 192;
+  for (let i = 0; i <= steps; i++) {
+    const a = (i / steps) * Math.PI * 2 - Math.PI / 2;
+    const rr = r * (0.92 + 0.08 * Math.cos(a * lobes));
+    const x = cx + rr * Math.cos(a);
+    const y = cy + rr * Math.sin(a);
+    if (i === 0) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.closePath();
+}
+
+/** The sport glyph on a cookie sticker in its category colours. */
+export function drawSportBadge(ctx: CanvasRenderingContext2D, data: CardData, x: number, y: number, size: number, dark = false): void {
+  const c = data.sportColors;
+  cookiePath(ctx, x + size / 2, y + size / 2, size / 2);
+  ctx.fillStyle = dark ? mix(c.fg, '#000000', 0.35) : c.bg;
+  ctx.fill();
+  const g = size * 0.52;
+  drawIconPath(ctx, data.sportIcon, dark ? c.bg : c.fg, x + (size - g) / 2, y + (size - g) / 2, g);
+}
+
+/** "Tue 20 Oct · 02:02 · Smash Club" */
+export function metaLine(data: CardData, withTime = true): string {
+  return [`${data.weekday} ${data.shortDate}`, withTime ? data.timeText : '', data.location].filter(Boolean).join(' · ');
 }

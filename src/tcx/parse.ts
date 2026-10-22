@@ -30,8 +30,11 @@ export type ParseResult =
   | { ok: false; error: string };
 
 export const ERR_NOT_TCX =
-  "This isn't a TCX workout file. In Google Health, open the workout → ⋯ → Export.";
-export const ERR_NO_ACTIVITIES = 'No workouts found in this file.';
+  "This file isn't a .tcx workout file. In Google Health, open your workout, tap the three dots (⋯), tap Export, and open that file here.";
+export const ERR_EMPTY = 'This file is empty. Export the workout from Google Health again and open the new file.';
+export const ERR_DAMAGED =
+  'This workout file is damaged or cut off. Export the workout from Google Health again and open the new file.';
+export const ERR_NO_ACTIVITIES = 'This file has no workouts in it. Export a single workout from Google Health and try again.';
 export const NOTE_NO_HR = 'No heart-rate data in this file.';
 
 const ISO_RE =
@@ -175,16 +178,15 @@ function parseActivity(activity: Element): Workout | null {
 export function parseTcx(text: string): ParseResult {
   try {
     const src = text.replace(/^﻿/, '').trimStart();
+    if (src === '') return { ok: false, error: ERR_EMPTY };
     if (!src.startsWith('<')) return { ok: false, error: ERR_NOT_TCX };
+    const looksLikeTcx = /<(\w+:)?TrainingCenterDatabase[\s>]/.test(src.slice(0, 2000));
     const doc = new DOMParser().parseFromString(src, 'application/xml');
     const root = doc.documentElement;
-    if (
-      !root ||
-      root.localName !== 'TrainingCenterDatabase' ||
-      doc.getElementsByTagName('parsererror').length > 0
-    ) {
-      return { ok: false, error: ERR_NOT_TCX };
+    if (!root || doc.getElementsByTagName('parsererror').length > 0) {
+      return { ok: false, error: looksLikeTcx ? ERR_DAMAGED : ERR_NOT_TCX };
     }
+    if (root.localName !== 'TrainingCenterDatabase') return { ok: false, error: ERR_NOT_TCX };
     const workouts = descendants(root, 'Activity')
       .map(parseActivity)
       .filter((w): w is Workout => w !== null);

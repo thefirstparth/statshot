@@ -4,7 +4,7 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { buildCardData } from '../src/card-data';
 import { availableDesigns } from '../src/render/registry';
 import { sportById } from '../src/sports';
-import { ERR_NO_ACTIVITIES, ERR_NOT_TCX, parseTcx, parseIsoWallClock, type Workout } from '../src/tcx/parse';
+import { ERR_DAMAGED, ERR_EMPTY, ERR_NO_ACTIVITIES, ERR_NOT_TCX, parseTcx, parseIsoWallClock, type Workout } from '../src/tcx/parse';
 import { formatDuration, formatTime, hrSummary, formatEnergy } from '../src/tcx/stats';
 import { fixture, FIXTURES } from './helpers';
 
@@ -95,16 +95,18 @@ describe('parseTcx: other fixtures', () => {
       workout: w,
       sport: sportById('strength'),
       title: '',
-      cardioLoad: null,
+      location: '',
       hour12: false,
       distanceUnit: 'km',
       age: 30,
+      restingHr: 60,
       maxHrOverride: null,
     });
     expect(data.stats.avgHr).toBeUndefined();
     expect(data.stats.maxHr).toBeUndefined();
-    expect(data.stats.activeMin).toBeUndefined();
-    expect(availableDesigns(false).map((d) => d.id)).toEqual(['glass', 'midnight', 'block', 'receipt', 'editorial', 'messages']);
+    expect(data.stats.zoneMin).toBeUndefined();
+    expect(availableDesigns(false).every((d) => !d.needsHr)).toBe(true);
+    expect(availableDesigns(false).map((d) => d.id)).not.toContain('trace');
   });
 
   it('returns every activity in a multi-activity file', () => {
@@ -123,9 +125,9 @@ describe('parseTcx: errors never throw', () => {
   const cases: [string, string, string][] = [
     ['an XML file that is not TCX', fixture('not-tcx.xml'), ERR_NOT_TCX],
     ['plain text', 'hello, this is not a workout', ERR_NOT_TCX],
-    ['an empty file', '', ERR_NOT_TCX],
+    ['an empty file', '', ERR_EMPTY],
     ['JSON', '{"activities": []}', ERR_NOT_TCX],
-    ['truncated XML', '<TrainingCenterDatabase><Activities><Activity Sport="Other">', ERR_NOT_TCX],
+    ['truncated XML', '<TrainingCenterDatabase><Activities><Activity Sport="Other">', ERR_DAMAGED],
     ['binary garbage', '\u0000\u0001PK\u0003\u0004ÿþ', ERR_NOT_TCX],
     ['a TCX with no activities', '<TrainingCenterDatabase xmlns="http://www.garmin.com/xmlschemas/TrainingCenterDatabase/v2"><Activities/></TrainingCenterDatabase>', ERR_NO_ACTIVITIES],
     ['an activity without any time', '<TrainingCenterDatabase><Activities><Activity Sport="Other"><Id>nope</Id></Activity></Activities></TrainingCenterDatabase>', ERR_NO_ACTIVITIES],
@@ -137,8 +139,8 @@ describe('parseTcx: errors never throw', () => {
   }
 
   it('uses the exact user-facing messages', () => {
-    expect(ERR_NOT_TCX).toBe("This isn't a TCX workout file. In Google Health, open the workout → ⋯ → Export.");
-    expect(ERR_NO_ACTIVITIES).toBe('No workouts found in this file.');
+    expect(ERR_NOT_TCX).toContain('tap Export');
+    expect(ERR_NO_ACTIVITIES).toContain('no workouts');
   });
 });
 

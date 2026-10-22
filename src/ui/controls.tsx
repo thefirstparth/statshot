@@ -1,3 +1,4 @@
+import { ACCENT_NAMES } from '../render/registry';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
@@ -18,19 +19,40 @@ export function Segmented<T extends string>({
   disabled?: boolean;
   note?: string;
 }) {
+  const segId = `seg-${label.replace(/\W+/g, '-').toLowerCase()}`;
   return (
     <div class={`field${disabled ? ' is-disabled' : ''}`}>
-      <div class="field-label" id={`seg-${label}`}>
+      <div class="field-label" id={segId}>
         {label}
         {note && <span class="field-note"> · {note}</span>}
       </div>
-      <div class="segmented" role="radiogroup" aria-labelledby={`seg-${label}`}>
+      <div
+        class="segmented"
+        role="radiogroup"
+        aria-labelledby={segId}
+        onKeyDown={(e) => {
+          const i = options.findIndex((o) => o.value === value);
+          const target =
+            e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % options.length
+            : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + options.length) % options.length
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? options.length - 1
+            : -1;
+          if (target < 0 || disabled) return;
+          e.preventDefault();
+          const next = options[target];
+          onChange(next.value);
+          const group = e.currentTarget as HTMLElement;
+          requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+        }}
+      >
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             role="radio"
             aria-checked={o.value === value}
+            tabIndex={o.value === value ? 0 : -1}
             class={o.value === value ? 'is-on' : ''}
             disabled={disabled}
             onClick={() => onChange(o.value)}
@@ -95,7 +117,7 @@ export function Swatches({
             type="button"
             role="radio"
             aria-checked={c.toLowerCase() === value.toLowerCase()}
-            aria-label={c}
+            aria-label={ACCENT_NAMES[c.toUpperCase()] ?? c}
             class={`swatch${c.toLowerCase() === value.toLowerCase() ? ' is-on' : ''}`}
             style={{ '--swatch': c }}
             onClick={() => onChange(c)}
@@ -129,8 +151,16 @@ export function NumberField({
   // Local text so partial input ("1" on the way to "18") isn't wiped by a re-render.
   const [text, setText] = useState(value === null ? '' : String(value));
   useEffect(() => {
-    setText((t) => (Number(t) === value || (t === '' && value === null) ? t : value === null ? '' : String(value)));
+    setText((t) => {
+      if (Number(t) === value || (t === '' && value === null)) return t;
+      // Keep what was typed while it's out of range, so the error message has something to point at.
+      const n = Number(t);
+      if (value === null && t !== '' && !(Number.isFinite(n) && n >= min && n <= max)) return t;
+      return value === null ? '' : String(value);
+    });
   }, [value]);
+  const n = Number(text);
+  const invalid = text !== '' && !(Number.isFinite(n) && n >= min && n <= max);
   return (
     <div class="field">
       <label class="field-label" for={id}>
@@ -151,12 +181,25 @@ export function NumberField({
             setText(raw);
             if (raw === '') return onChange(null);
             const n = Number(raw);
-            if (Number.isFinite(n) && n >= min && n <= max) onChange(Math.round(n));
+            // An out-of-range value clears the setting, so nothing silently keeps using the old number.
+            onChange(Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : null);
           }}
+          aria-invalid={invalid}
+          aria-describedby={invalid ? `${id}-err` : note ? `${id}-note` : undefined}
         />
         {suffix && <span class="input-suffix">{suffix}</span>}
       </div>
-      {note && <p class="field-help">{note}</p>}
+      {invalid ? (
+        <p class="field-error" id={`${id}-err`}>
+          Enter a number from {min} to {max}.
+        </p>
+      ) : (
+        note && (
+          <p class="field-help" id={`${id}-note`}>
+            {note}
+          </p>
+        )
+      )}
     </div>
   );
 }

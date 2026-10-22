@@ -20,7 +20,7 @@ const GAP = 10;
 /** "1h 51m of table tennis, 496 kcal, avg 112 bpm" */
 export function statSentence(data: CardData, stats: StatItem[]): string {
   const duration = stats.find((s) => s.key === 'duration');
-  const rest = stats.filter((s) => s.key !== 'duration').map((s) => s.phrase);
+  const rest = stats.filter((s) => s.key !== 'duration').map((s) => s.phrase.replace(/ (kcal|bpm|km|mi|min)\b/g, '\u00A0$1'));
   if (duration) return [`${duration.value} of ${data.sportLower}`, ...rest].join(', ');
   if (rest.length === 0) return `${data.sportName} done`;
   const [first, ...more] = rest;
@@ -61,6 +61,7 @@ function bubble(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, 
 export const messages: CardDesign = {
   id: 'messages',
   name: 'Messages',
+  blurb: 'Your workout as a text bubble',
   supportsAccent: true,
   defaultAccent: MESSAGES_BLUE,
 
@@ -95,9 +96,9 @@ export const messages: CardDesign = {
     });
 
     setFont(ctx, META);
-    ctx.fillStyle = opts.theme === 'dark' ? '#98989F' : '#6C6C70';
+    ctx.fillStyle = opts.theme === 'dark' ? (opts.background === 'transparent' ? '#E5E5EA' : '#98989F') : '#6C6C70';
     ctx.textAlign = 'right';
-    const meta = `${data.shortDate} at ${data.timeText}${opts.showLogo ? ' · Statshot' : ''}`;
+    const meta = [`${data.shortDate} at ${data.timeText}`, data.location, opts.showLogo ? 'Sweatshot' : ''].filter(Boolean).join(' · ');
     ctx.fillText(ellipsize(ctx, meta, box.w - 40), right - 8, box.y + baseline(L.metaTop, META.size));
   },
 };

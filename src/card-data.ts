@@ -1,21 +1,20 @@
 import { hashString } from './render/canvas';
 import { STAT_ORDER, type CardData, type StatItem, type StatKey } from './render/types';
-import type { Sport } from './sports';
+import { CATEGORY_COLORS, type Sport } from './sports';
 import type { Workout } from './tcx/parse';
 import {
-  activeMinutes,
+  addSeconds,
   formatDistance,
   formatDuration,
-  formatEnergy,
   formatFullDate,
   formatLongDate,
-  formatMinutes,
   formatShortDate,
   formatTime,
   hrSeries,
   hrSummary,
+  hrrZoneMinutes,
   resolveMaxHr,
-  zoneMinutes,
+  weekday,
   type DistanceUnit,
 } from './tcx/stats';
 
@@ -23,61 +22,97 @@ export type CardInputs = {
   workout: Workout;
   sport: Sport;
   title: string; // empty → sport name
-  cardioLoad: number | null;
+  location: string;
   hour12: boolean;
   distanceUnit: DistanceUnit;
   age: number | null;
+  restingHr: number | null;
   maxHrOverride: number | null;
 };
+
+export const MAX_TITLE = 40;
+
+/** Removes invisible direction overrides that would flip text on the card. */
+export function cleanText(text: string): string {
+  return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '').trim();
+}
+
+/** First `max` characters, counting an emoji as one. */
+function clip(text: string, max: number): string {
+  return Array.from(text).slice(0, max).join('');
+}
+
+export const MAX_LOCATION = 40;
 
 export function buildCardData(inp: CardInputs): CardData {
   const { workout: w, sport } = inp;
   const hr = hrSummary(w);
-  const maxHrValue = resolveMaxHr(inp.age, inp.maxHrOverride);
-  const zones = w.hr.length > 1 && maxHrValue !== null ? zoneMinutes(w.hr, maxHrValue) : null;
+  const zones = hrrZoneMinutes(w.hr, inp.restingHr, resolveMaxHr(inp.age, inp.maxHrOverride));
+  const end = addSeconds(w.start, w.durationSec);
+  const startText = formatTime(w.start, inp.hour12);
+  const endText = formatTime(end, inp.hour12);
 
   const stats: Partial<Record<StatKey, StatItem>> = {};
-  const add = (key: StatKey, label: string, value: string, phrase: string) => {
-    stats[key] = { key, label, value, phrase };
+  const add = (key: StatKey, item: Omit<StatItem, 'key'>) => {
+    stats[key] = { key, ...item };
   };
   const duration = formatDuration(w.durationSec);
-  add('duration', 'Duration', duration, duration);
-  if (w.calories !== null) add('energy', 'Energy', formatEnergy(w.calories), formatEnergy(w.calories));
-  if (hr.avg !== null) add('avgHr', 'Avg HR', `${hr.avg} bpm`, `avg ${hr.avg} bpm`);
-  if (hr.max !== null) add('maxHr', 'Max HR', `${hr.max} bpm`, `max ${hr.max} bpm`);
+  add('duration', { label: 'Duration', short: 'Time', value: duration, number: duration, unit: '', phrase: duration });
+  if (w.calories !== null) {
+    const kcal = String(Math.round(w.calories));
+    add('energy', { label: 'Energy', short: 'Energy', value: `${kcal} kcal`, number: kcal, unit: 'kcal', phrase: `${kcal} kcal` });
+  }
+  if (hr.avg !== null) {
+    add('avgHr', { label: 'Avg heart rate', short: 'Avg HR', value: `${hr.avg} bpm`, number: String(hr.avg), unit: 'bpm', phrase: `avg ${hr.avg} bpm` });
+  }
+  if (hr.max !== null) {
+    add('maxHr', { label: 'Peak heart rate', short: 'Peak HR', value: `${hr.max} bpm`, number: String(hr.max), unit: 'bpm', phrase: `peak ${hr.max} bpm` });
+  }
+  if (hr.min !== null) {
+    add('minHr', { label: 'Lowest heart rate', short: 'Low HR', value: `${hr.min} bpm`, number: String(hr.min), unit: 'bpm', phrase: `lowest ${hr.min} bpm` });
+  }
   if (zones) {
-    const active = formatMinutes(activeMinutes(zones));
-    add('activeMin', 'Active min', active, `${active} active`);
+    const z = String(zones.zoneMinutes);
+    add('zoneMin', { label: 'Zone minutes', short: 'Zone min', value: `${z} zone min`, number: z, unit: 'zone min', phrase: `${z} zone minutes` });
   }
-  if (w.distanceM !== null) {
-    const d = formatDistance(w.distanceM, inp.distanceUnit);
-    add('distance', 'Distance', d, d);
+  const distanceText = w.distanceM !== null ? formatDistance(w.distanceM, inp.distanceUnit) : null;
+  if (distanceText) {
+    const [num, unit] = distanceText.split(' ');
+    add('distance', { label: 'Distance', short: 'Distance', value: distanceText, number: num, unit, phrase: distanceText });
   }
-  if (inp.cardioLoad !== null) {
-    add('cardioLoad', 'Cardio load', String(inp.cardioLoad), `cardio load ${inp.cardioLoad}`);
-  }
+  // "2:02–3:53 AM" rather than "2:02 AM–3:53 AM" when both halves share the suffix.
+  const sameHalf = inp.hour12 && startText.slice(-2) === endText.slice(-2);
+  const range = sameHalf ? `${startText.slice(0, -3)}–${endText}` : `${startText}–${endText}`;
+  add('timeRange', { label: 'Time of day', short: 'Time', value: range, number: range, unit: '', phrase: `from ${startText} to ${endText}` });
 
   return {
-    title: inp.title.trim() || sport.name,
+    title: clip(cleanText(inp.title), MAX_TITLE) || sport.name,
     sportName: sport.name,
     sportLower: sport.lower,
     dateText: formatLongDate(w.start),
     shortDate: formatShortDate(w.start),
     fullDate: formatFullDate(w.start),
-    timeText: formatTime(w.start, inp.hour12),
+    weekday: weekday(w.start),
+    timeText: startText,
+    endTimeText: endText,
+    startMin: w.start.h * 60 + w.start.mi,
+    sportId: sport.id,
     sportIcon: sport.icon,
+    sportColors: CATEGORY_COLORS[sport.cat],
+    location: clip(cleanText(inp.location), MAX_LOCATION),
     stats,
     hrSeries: hrSeries(w.hr),
     durationSec: w.durationSec,
     avgHr: hr.avg,
     maxHr: hr.max,
-    zoneMinutes: zones,
-    cardioLoad: inp.cardioLoad ?? undefined,
+    minHr: hr.min,
+    distanceText,
+    zones,
     seed: hashString(w.start.iso),
   };
 }
 
-/** Stat keys with data, in toggle order. */
+/** Stat keys with data, in tray order. */
 export function availableStats(data: CardData): StatKey[] {
   return STAT_ORDER.filter((k) => data.stats[k] !== undefined);
 }

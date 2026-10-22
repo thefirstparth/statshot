@@ -3,7 +3,7 @@ import { loadIcons } from './icons';
 import type { CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
 
 export const CARD_WIDTH = 920;
-export const STICKER_PAD = 48;
+export const STICKER_PAD = 32;
 const MIN_MARGIN = 64;
 
 export const SIZES: Record<Exclude<SizeKey, 'sticker'>, { w: number; h: number }> = {
@@ -47,8 +47,16 @@ export function canvasLayout(
   const cw = CARD_WIDTH * scale;
   const ch = cardH * scale;
   let y = (h - ch) / 2;
-  if (size === 'story') y = Math.max(MIN_MARGIN, y - h * 0.035); // slightly above the middle
   return { width: w, height: h, x: Math.round((w - cw) / 2), y: Math.round(y), scale, box };
+}
+
+/** See-through text-only cards: a soft halo keeps them readable on any photo. */
+function applyFloatingShadow(ctx: CanvasRenderingContext2D, design: CardDesign, opts: CardOptions): void {
+  if (!design.floating || opts.background !== 'transparent') return;
+  ctx.shadowColor = opts.theme === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)';
+  ctx.shadowBlur = 26;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 2;
 }
 
 /** Decode everything a card needs before drawing it (fonts are loaded once at app start). */
@@ -80,9 +88,41 @@ export function renderCard(
   ctx.save();
   ctx.translate(layout.x, layout.y);
   ctx.scale(layout.scale, layout.scale);
+  applyFloatingShadow(ctx, design, opts);
   design.draw(ctx, layout.box, data, opts);
   ctx.restore();
   return layout;
+}
+
+/** Small preview: the same drawing scaled to `width` CSS pixels (× devicePixelRatio). */
+export function renderThumb(
+  canvas: HTMLCanvasElement,
+  design: CardDesign,
+  data: CardData,
+  opts: CardOptions,
+  size: SizeKey,
+  width: number,
+  dpr = 1,
+): void {
+  const layout = canvasLayout(design, data, opts, size);
+  const k = (width * dpr) / layout.width;
+  canvas.width = Math.round(layout.width * k);
+  canvas.height = Math.round(layout.height * k);
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  ctx.setTransform(k, 0, 0, k, 0, 0);
+  ctx.clearRect(0, 0, layout.width, layout.height);
+  if (opts.background === 'solid') {
+    ctx.fillStyle = design.background(opts);
+    ctx.fillRect(0, 0, layout.width, layout.height);
+  }
+  ctx.translate(layout.x, layout.y);
+  ctx.scale(layout.scale, layout.scale);
+  ctx.save();
+  applyFloatingShadow(ctx, design, opts);
+  design.draw(ctx, layout.box, data, opts);
+  ctx.restore();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
 }
 
 export function renderToNewCanvas(

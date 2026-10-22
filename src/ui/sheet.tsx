@@ -5,6 +5,16 @@ import { Icon } from './icon';
 const FOCUSABLE =
   'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
+// The control that had focus before a sheet opened. Captured on focus (not at mount), because
+// opening a sheet makes the page behind inert, which drops focus to <body> first.
+let lastOutside: HTMLElement | null = null;
+if (typeof document !== 'undefined') {
+  document.addEventListener('focusin', (e) => {
+    const t = e.target as HTMLElement;
+    if (t && !t.closest?.('.sheet-layer')) lastOutside = t;
+  });
+}
+
 export const reducedMotion = () =>
   typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 
@@ -26,6 +36,21 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   const [closing, setClosing] = useState(false);
   const [drag, setDrag] = useState(0);
   const dragStart = useRef<{ y: number; t: number } | null>(null);
+  const openedAt = useRef(performance.now());
+  // Ignore taps for a moment after opening, so a fast double tap on the opener can't change a setting.
+  const [armed, setArmed] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 350);
+    return () => clearTimeout(t);
+  }, []);
+  // Escape closes the sheet even when focus has fallen back to the page body.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && !ref.current?.contains(e.target as Node)) close();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -40,11 +65,21 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   };
 
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
+    const active = document.activeElement as HTMLElement | null;
+    const previous = active && active !== document.body && !active.closest('.sheet-layer') ? active : lastOutside;
     const el = ref.current;
     const first = el?.querySelector<HTMLElement>('[data-autofocus]') ?? el;
     first?.focus({ preventScroll: true });
-    return () => previous?.focus?.({ preventScroll: true });
+    return () => {
+      // The page behind is still inert during this cleanup, so restore on the next frame.
+      requestAnimationFrame(() => {
+        const target =
+          previous && previous !== document.body && previous.isConnected
+            ? previous
+            : document.querySelector<HTMLElement>('[data-focus-home]');
+        target?.focus?.({ preventScroll: true });
+      });
+    };
   }, []);
 
   const onKeyDown = (e: KeyboardEvent) => {
@@ -74,6 +109,8 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   };
 
   const onPointerDown = (e: PointerEvent) => {
+    // Let taps on the close button be clicks; only the handle area drags.
+    if ((e.target as HTMLElement).closest('button')) return;
     dragStart.current = { y: e.clientY, t: performance.now() };
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };
@@ -92,7 +129,13 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
 
   return (
     <div class={`sheet-layer${closing ? ' is-closing' : ''}`} onKeyDown={onKeyDown}>
-      <div class={`sheet-backdrop${light ? ' is-light' : ''}`} onClick={close} aria-hidden="true" />
+      <div
+        class={`sheet-backdrop${light ? ' is-light' : ''}`}
+        onClick={() => {
+          if (performance.now() - openedAt.current > 350) close();
+        }}
+        aria-hidden="true"
+      />
       <div
         ref={ref}
         class={`sheet${cls ? ' ' + cls : ''}`}
@@ -100,7 +143,10 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        style={drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : undefined}
+        style={{
+          ...(drag ? { transform: `translateY(${drag}px)`, transition: 'none' } : {}),
+          ...(armed ? {} : { pointerEvents: 'none' as const }),
+        }}
       >
         <div
           class="sheet-grip"
@@ -113,7 +159,7 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
           <div class="sheet-head">
             <h2>{title}</h2>
             <button type="button" class="icon-btn" onClick={close} aria-label="Close">
-              <Icon name="x" />
+              <Icon name="close" />
             </button>
           </div>
         </div>

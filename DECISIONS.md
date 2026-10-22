@@ -6,7 +6,7 @@ Choices made where the build spec was silent or needed interpreting. Grouped by 
 
 - **Versions:** Vite 8, TypeScript 6.0 (strict, plus `noUnusedLocals`/`noUnusedParameters`), Preact 10, Vitest 5, vite-plugin-pwa 2, @napi-rs/canvas 1. TypeScript 7 (the native port) was available but skipped as too new for the toolchain.
 - **Fonts:** every package named in the spec exists (`@fontsource/inter`, `instrument-serif`, `jetbrains-mono`, `space-grotesk`), so there are no substitutions. Only the faces the designs use are bundled (Inter 400/500/600/700, Instrument Serif 400 normal + italic, JetBrains Mono 400/700, Space Grotesk 500/700), in the latin and latin-ext subsets. Other scripts (Devanagari, CJK…) in a custom title fall back to system fonts through the canvas font list.
-- **Icons:** a small Vite plugin (`build/icons-plugin.ts`) exposes `virtual:tabler-icons`, a map of icon name → SVG string for exactly the icons the app uses. It checks every name against `@tabler/icons` at build time and falls back to `activity` with a build warning. The UI chrome uses the same Tabler icons, inlined as SVG.
+- **Icons:** a small Vite plugin (`build/icons-plugin.ts`) exposes `virtual:icons`, a map of icon name → SVG path data from Material Symbols Rounded for exactly the icons the app uses (plus `-fill` variants and a custom table tennis glyph). Missing names fall back to `exercise` with a build warning. Cards draw icons straight from the path data with `Path2D`.
 - **Service worker:** `injectManifest` strategy (`src/sw.ts`) because the Android share target needs a custom POST handler. Workbox precaches the shell (JS, CSS, HTML, woff2 fonts, icons); navigations fall back to the precached `index.html` so the app opens offline.
 - **Content Security Policy:** production builds add a CSP `<meta>` that allows only same-origin scripts, fonts and connections (plus `data:`/`blob:` images). This enforces the no-external-requests rule in the browser. Dev builds skip it because Vite's HMR needs inline scripts.
 - **No `vercel.json`:** Vercel's Vite preset builds and serves `dist/` as is.
@@ -66,3 +66,13 @@ Choices made where the build spec was silent or needed interpreting. Grouped by 
 - `synthetic-basic.tcx` has 3325 samples (t = 0…6648 s, every 2 s) so that the sum is exactly 112 × N, with one 82 (the first sample) and one 135. The lap still says 6651 s.
 - `synthetic-multilap.tcx` uses a −04:00 offset and includes Position, Altitude, DistanceMeters and a `TPX` extension to prove they're ignored.
 - `synthetic-multi-activity.tcx` has a Biking and an Other activity on consecutive days.
+
+## Sweatshot redesign (round 2)
+
+- **Name and look:** renamed to Sweatshot. The UI is the "sticker book" direction: cream paper (night version in dark mode), ink outlines with offset shadows, mango call to action, Bricolage Grotesque. Appearance follows the system with an Auto/Light/Dark override.
+- **Zones:** switched from % of max HR (5 zones) to Google Health's heart-rate-reserve method (Light/Moderate/Vigorous/Peak at 40/60/85 %), which needs resting HR and age (or max HR). Zone minutes = moderate + 2 × (vigorous + peak), each zone rounded first.
+- **Fields:** sport, optional title, optional location. Cardio load was dropped (not in the export, and most people won't type it).
+- **Favourites:** up to five starred designs come first in the carousel; the others stay under "Designs". Five defaults: Summary, Heart trace, Sticker pill, Messages, Hero number.
+- **Stats order:** the order you tap stats in is the order on the card (no drag-to-reorder; tapping is more reliable on iOS Safari).
+- **Sample workout:** a generated, clearly labelled pickleball session lets people try the app without a file.
+- **Settings migration:** preferences saved under the old `statshot:prefs:v1` key are read once; retired designs fall back to Summary.

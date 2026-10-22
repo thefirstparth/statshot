@@ -15,7 +15,12 @@ const SPARK_H = 56;
 const BARCODE_H = 84;
 
 function layout(data: CardData, opts: CardOptions) {
-  const stats = visibleStats(data, opts);
+  const stats: { label: string; value: string }[] = visibleStats(data, opts);
+  if (data.location) {
+    const chars = Array.from(data.location); // never split an emoji
+    const loc = chars.length > 24 ? chars.slice(0, 23).join('').trimEnd() + '…' : data.location;
+    stats.push({ label: 'Place', value: loc });
+  }
   const headerTop = EDGE + 30;
   const titleTop = headerTop + HEADER_H + 52;
   const sep1 = titleTop + TITLE * 1.2 + 28;
@@ -69,12 +74,12 @@ function dashedRule(ctx: CanvasRenderingContext2D, x: number, y: number, w: numb
 export const receipt: CardDesign = {
   id: 'receipt',
   name: 'Receipt',
+  blurb: 'Looks like a shop receipt',
   supportsAccent: false,
   supportsGraph: true,
-  supportsTheme: false,
-
-  background() {
-    return '#2A2C31';
+  background(opts) {
+    // The paper always stays paper; Light/Dark only changes what's behind it.
+    return opts.theme === 'dark' ? '#2A2C31' : '#DCD8D2';
   },
 
   measure(_width, data, opts) {
