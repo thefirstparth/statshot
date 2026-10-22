@@ -2245,3 +2245,11 @@ button:disabled {
   background: rgba(28, 22, 18, 0.95);
   color: #fff4e4;
 }
+
+/* The dots take the space between the arrows (they shrink to zero otherwise). */
+.dots-row .dots {
+  flex: 1 1 auto;
+  min-width: 0;
+  max-width: 440px;
+  padding: 0;
+}
