@@ -2115,3 +2115,16 @@ button:disabled {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
+
+/* Toasts sit at the top so they never cover the action buttons or a sheet row. */
+.toast {
+  top: calc(var(--safe-top) + 12px);
+  bottom: auto;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -12px);
+  }
+}

@@ -31,6 +31,12 @@ export type CardInputs = {
 };
 
 export const MAX_TITLE = 40;
+
+/** Removes invisible direction overrides that would flip text on the card. */
+export function cleanText(text: string): string {
+  return text.replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '').trim();
+}
+
 export const MAX_LOCATION = 40;
 
 export function buildCardData(inp: CardInputs): CardData {
@@ -69,11 +75,13 @@ export function buildCardData(inp: CardInputs): CardData {
     const [num, unit] = distanceText.split(' ');
     add('distance', { label: 'Distance', short: 'Distance', value: distanceText, number: num, unit, phrase: distanceText });
   }
-  const range = `${startText}–${endText}`;
+  // "2:02–3:53 AM" rather than "2:02 AM–3:53 AM" when both halves share the suffix.
+  const sameHalf = inp.hour12 && startText.slice(-2) === endText.slice(-2);
+  const range = sameHalf ? `${startText.slice(0, -3)}–${endText}` : `${startText}–${endText}`;
   add('timeRange', { label: 'Time of day', short: 'Time', value: range, number: range, unit: '', phrase: `from ${startText} to ${endText}` });
 
   return {
-    title: inp.title.trim().slice(0, MAX_TITLE) || sport.name,
+    title: cleanText(inp.title).slice(0, MAX_TITLE) || sport.name,
     sportName: sport.name,
     sportLower: sport.lower,
     dateText: formatLongDate(w.start),
@@ -86,7 +94,7 @@ export function buildCardData(inp: CardInputs): CardData {
     sportId: sport.id,
     sportIcon: sport.icon,
     sportColors: CATEGORY_COLORS[sport.cat],
-    location: inp.location.trim().slice(0, MAX_LOCATION),
+    location: cleanText(inp.location).slice(0, MAX_LOCATION),
     stats,
     hrSeries: hrSeries(w.hr),
     durationSec: w.durationSec,

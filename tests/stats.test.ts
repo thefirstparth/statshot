@@ -213,6 +213,13 @@ describe('card data', () => {
     expect(availableStats(data)).toEqual(['duration', 'energy', 'avgHr', 'maxHr', 'minHr', 'timeRange']);
   });
 
+  it('strips direction overrides and shortens 12-hour ranges', () => {
+    const d = buildCardData({ workout: basic(), sport: sportById('table-tennis'), title: '\u202Eabc', location: ' Club\u2066 ', hour12: true, distanceUnit: 'km', age: null, restingHr: null, maxHrOverride: null });
+    expect(d.title).toBe('abc');
+    expect(d.location).toBe('Club');
+    expect(d.stats.timeRange?.value).toBe('2:02–3:53 AM');
+  });
+
   it('builds the Messages sentence', () => {
     const opts = { stats: ['duration', 'energy', 'avgHr'] } as CardOptions;
     expect(statSentence(data, visibleStats(data, opts))).toBe('1h 51m of table tennis, 496 kcal, avg 112 bpm');

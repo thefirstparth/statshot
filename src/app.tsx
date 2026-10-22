@@ -203,6 +203,27 @@ export function App() {
     };
   }, []);
 
+  // Phone Back: close the open sheet, else step back from the editor to home, instead of leaving.
+  const hasWorkout = workouts !== null && workoutIdx !== null;
+  const backRef = useRef({ sheet, hasWorkout });
+  backRef.current = { sheet, hasWorkout };
+  useEffect(() => {
+    if (!hasWorkout) return;
+    history.pushState({ sweatshot: 'editor' }, '');
+    const onPop = () => {
+      const { sheet: open } = backRef.current;
+      if (open) {
+        setSheet(null);
+        history.pushState({ sweatshot: 'editor' }, '');
+      } else {
+        setWorkouts(null);
+        setWorkoutIdx(null);
+      }
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [hasWorkout]);
+
   // Android share target: the service worker parks the shared file in the Cache API.
   useEffect(() => {
     const url = new URL(window.location.href);
@@ -320,8 +341,12 @@ export function App() {
     return blob;
   };
 
+  const busy = useRef(0);
   const onDownload = () => {
     if (!data || exportBlocked) return;
+    // A quick double or triple tap saves once.
+    if (performance.now() - busy.current < 1200) return;
+    busy.current = performance.now();
     downloadBlob(currentBlob(), filename);
     showToast('Image saved. Find it in your Downloads or Files app.');
   };
@@ -428,8 +453,12 @@ export function App() {
 
   const onSettingsChange = (patch: Partial<Prefs>) => {
     const next = { ...prefs, ...patch };
-    const before = prefs.restingHr !== null && resolveMaxHr(prefs.age, prefs.maxHrOverride) !== null;
-    const after = next.restingHr !== null && resolveMaxHr(next.age, next.maxHrOverride) !== null;
+    const ready = (p: Prefs) => {
+      const max = resolveMaxHr(p.age, p.maxHrOverride);
+      return p.restingHr !== null && max !== null && max > p.restingHr + 10;
+    };
+    const before = ready(prefs);
+    const after = ready(next);
     // The first time zones turn on, put zone minutes on the card too.
     if (!before && after && !next.stats.includes('zoneMin') && next.stats.length < MAX_STATS) {
       patch = { ...patch, stats: [...next.stats, 'zoneMin' as StatKey] };

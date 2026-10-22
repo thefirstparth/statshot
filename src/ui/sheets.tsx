@@ -148,7 +148,8 @@ export function SettingsSheet({
 }) {
   const [confirmReset, setConfirmReset] = useState(false);
   const maxHr = resolveMaxHr(prefs.age, prefs.maxHrOverride);
-  const zonesReady = prefs.restingHr !== null && maxHr !== null;
+  const zonesReady = prefs.restingHr !== null && maxHr !== null && maxHr > prefs.restingHr + 10;
+  const zonesConflict = prefs.restingHr !== null && maxHr !== null && !zonesReady;
   return (
     <Sheet title="Settings" onClose={onClose}>
       <section class="settings-group">
@@ -181,7 +182,11 @@ export function SettingsSheet({
         />
         <p class={`zone-status${zonesReady ? ' is-ready' : ''}`} role="status">
           <Icon name={zonesReady ? 'check' : 'lock'} />
-          {zonesReady ? 'Zones are on.' : 'Zones are off until resting heart rate and age are set.'}
+          {zonesReady
+            ? 'Zones are on.'
+            : zonesConflict
+              ? 'Max heart rate must be well above resting heart rate. Check both numbers.'
+              : 'Zones are off until resting heart rate and age are set.'}
         </p>
       </section>
 
@@ -437,7 +442,12 @@ export function DesignsSheet({
           class={`star-btn${starred ? ' is-on' : ''}`}
           aria-pressed={starred}
           aria-label={starred ? `Unstar ${d.name}` : `Star ${d.name}`}
-          onClick={() => onStar(d.id)}
+          data-star={d.id}
+          onClick={() => {
+            onStar(d.id);
+            // The row moves between lists, so put focus back on its star.
+            requestAnimationFrame(() => document.querySelector<HTMLElement>(`[data-star="${d.id}"]`)?.focus());
+          }}
         >
           <Icon name={starred ? 'star-fill' : 'star'} />
         </button>

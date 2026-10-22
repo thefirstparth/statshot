@@ -26,6 +26,7 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   const [closing, setClosing] = useState(false);
   const [drag, setDrag] = useState(0);
   const dragStart = useRef<{ y: number; t: number } | null>(null);
+  const openedAt = useRef(performance.now());
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
 
@@ -101,7 +102,13 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
 
   return (
     <div class={`sheet-layer${closing ? ' is-closing' : ''}`} onKeyDown={onKeyDown}>
-      <div class={`sheet-backdrop${light ? ' is-light' : ''}`} onClick={close} aria-hidden="true" />
+      <div
+        class={`sheet-backdrop${light ? ' is-light' : ''}`}
+        onClick={() => {
+          if (performance.now() - openedAt.current > 350) close();
+        }}
+        aria-hidden="true"
+      />
       <div
         ref={ref}
         class={`sheet${cls ? ' ' + cls : ''}`}
