@@ -98,7 +98,7 @@ export const zones: CardDesign = {
     y += ROW_H * 4 + 40;
 
     const note = z
-      ? `Heart-rate reserve zones · resting ${z.restingHr} bpm${opts.showLogo ? ` · ${BRAND}` : ''}`
+      ? `Resting heart rate ${z.restingHr} bpm${opts.showLogo ? ` · ${BRAND}` : ''}`
       : 'Add resting heart rate and age in Settings';
     drawFitText(ctx, note, x, baseline(y, 28), w, { family: SANS, weight: 400, size: 28 }, c.muted);
   },

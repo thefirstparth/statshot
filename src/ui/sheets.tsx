@@ -123,6 +123,9 @@ export function WorkoutSheet({
           <Icon name="upload_file" />
           Open a different file
         </button>
+        <button type="button" class="btn btn-primary" onClick={onClose}>
+          Done
+        </button>
       </div>
     </Sheet>
   );
@@ -151,8 +154,9 @@ export function SettingsSheet({
       <section class="settings-group">
         <h3 class="section-title">Heart-rate zones</h3>
         <p class="field-help">
-          Zones and zone minutes use your heart-rate reserve, the same method as Google Health. Fill in both to unlock
-          them.
+          Zones show how hard you worked (Light, Moderate, Vigorous, Peak). Zone minutes add them up, like Google
+          Health does. Enter your resting heart rate and your age to turn them on. They are saved only on this
+          phone.
         </p>
         <NumberField
           label="Resting heart rate"
@@ -162,18 +166,18 @@ export function SettingsSheet({
           min={30}
           max={120}
           suffix="bpm"
-          note="Find it in Google Health under Heart rate."
+          note="Your heart rate when you sit still. Google Health shows it on the Heart rate page."
         />
-        <NumberField label="Age" value={prefs.age} onChange={(age) => onChange({ age })} placeholder="Years" min={10} max={100} />
+        <NumberField label="Age" value={prefs.age} onChange={(age) => onChange({ age })} placeholder="e.g. 30" min={10} max={100} suffix="years" />
         <NumberField
           label="Max heart rate (optional)"
           value={prefs.maxHrOverride}
           onChange={(maxHrOverride) => onChange({ maxHrOverride })}
-          placeholder={prefs.age ? String(220 - prefs.age) : 'Optional'}
+          placeholder="Optional"
           min={100}
           max={230}
           suffix="bpm"
-          note={maxHr ? `Using ${maxHr} bpm.` : 'Leave empty to use 220 − age.'}
+          note={maxHr ? `Using ${maxHr} bpm.` : 'If you leave this empty, we estimate it from your age.'}
         />
         <p class={`zone-status${zonesReady ? ' is-ready' : ''}`} role="status">
           <Icon name={zonesReady ? 'check' : 'lock'} />
@@ -184,7 +188,7 @@ export function SettingsSheet({
       <section class="settings-group">
         <h3 class="section-title">App</h3>
         <Segmented<Appearance>
-          label="Appearance"
+          label="App colours"
           value={prefs.appearance}
           options={[
             { value: 'auto', label: 'Auto' },
@@ -223,18 +227,25 @@ export function SettingsSheet({
             onReset();
           }}
         >
-          {confirmReset ? 'Tap again to reset everything' : 'Reset all settings'}
+          {confirmReset ? 'Tap again to reset all settings' : 'Reset all settings'}
         </button>
       </div>
       <p class="fine-print">
-        Settings stay on this device. Your workout file is never stored or uploaded. Not affiliated with Google or
-        Fitbit. <a href={REPO_URL} target="_blank" rel="noopener noreferrer">Source code</a>
+        Settings stay on this device. Your workout file is never uploaded, and it isn’t kept after you close the app.
+        Not affiliated with Google or Fitbit. <a href={REPO_URL} target="_blank" rel="noopener noreferrer">Source code</a>
       </p>
     </Sheet>
   );
 }
 
 // ── Customize ────────────────────────────────────────────────────────────────
+
+const SIZE_NOTES: Record<SizeKey, string> = {
+  sticker: 'just the card, to paste on a story or photo',
+  story: 'fills a phone screen, for stories',
+  post: 'tall post for a feed',
+  square: 'square post',
+};
 
 export function EditSheet({
   design,
@@ -275,8 +286,20 @@ export function EditSheet({
 
   return (
     <Sheet title="Customize" onClose={onClose} light class="sheet-customize">
+      <Segmented<SizeKey>
+        label="Image size"
+        note={SIZE_NOTES[prefs.size]}
+        value={prefs.size}
+        options={[
+          { value: 'sticker', label: 'Card' },
+          { value: 'story', label: 'Story 9:16' },
+          { value: 'post', label: 'Post 4:5' },
+          { value: 'square', label: 'Square' },
+        ]}
+        onChange={(size) => onChange({ size })}
+      />
       <Segmented
-        label="Mode"
+        label="Card colours"
         value={themeLocked ? 'light' : prefs.theme}
         disabled={themeLocked}
         note={themeLocked ? `${design.name} is always light` : undefined}
@@ -288,10 +311,11 @@ export function EditSheet({
       />
       <Segmented
         label="Background"
+        note={prefs.background === 'transparent' ? 'no background, to put on your own photo' : undefined}
         value={prefs.background}
         options={[
           { value: 'solid', label: 'Solid' },
-          { value: 'transparent', label: 'Clear' },
+          { value: 'transparent', label: 'See-through' },
         ]}
         onChange={(background) => onChange({ background })}
       />
@@ -313,8 +337,8 @@ export function EditSheet({
         {zonesLocked && hasHr && (
           <button type="button" class="toggle-row toggle-link" onClick={onOpenSettings}>
             <span class="toggle-text">
-              Zone minutes
-              <span class="toggle-hint">Add resting heart rate and age in Settings</span>
+              Zone minutes (how hard you worked)
+              <span class="toggle-hint">Tap to open Settings and enter resting heart rate and age</span>
             </span>
             <Icon name="chevron_right" />
           </button>
@@ -329,17 +353,6 @@ export function EditSheet({
         <Toggle label="Show Sweatshot mark" checked={prefs.showLogo} onChange={(showLogo) => onChange({ showLogo })} />
       </div>
 
-      <Segmented<SizeKey>
-        label="Size"
-        value={prefs.size}
-        options={[
-          { value: 'sticker', label: 'Card only' },
-          { value: 'story', label: 'Story' },
-          { value: 'post', label: 'Post' },
-          { value: 'square', label: 'Square' },
-        ]}
-        onChange={(size) => onChange({ size })}
-      />
       {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
 
       <button type="button" class="row-btn" onClick={onOpenDesigns}>

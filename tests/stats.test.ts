@@ -181,6 +181,7 @@ describe('formatting', () => {
 
   it('builds the export filename', () => {
     expect(exportFilename(slugify('table-tennis'), '2026-10-20')).toBe('sweatshot-table-tennis-2026-10-20.png');
+    expect(exportFilename('walking', '2026-10-14', 'dial')).toBe('sweatshot-walking-2026-10-14-dial.png');
     expect(slugify('Bouldering & Co')).toBe('bouldering-co');
     expect(slugify('Ωμέγα')).toBe('workout');
   });

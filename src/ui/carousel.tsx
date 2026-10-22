@@ -7,6 +7,12 @@ import { reducedMotion } from './sheet';
 
 const GAP = 12;
 
+/** What the card says, for screen readers. */
+function altText(design: CardDesign, data: CardData, opts: CardOptions): string {
+  const stats = opts.stats.map((k) => data.stats[k]?.value).filter(Boolean).join(', ');
+  return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${stats ? `. ${stats}` : ''}`;
+}
+
 type PreviewProps = {
   design: CardDesign;
   data: CardData;
@@ -46,7 +52,7 @@ function CardPreview({ design, data, opts, size, live, ready, box, children }: P
   return (
     <div class={`preview${transparent ? ' is-transparent' : ''}`} style={style}>
       {live && ready ? (
-        <canvas ref={ref} class="preview-canvas" role="img" aria-label={`${design.name} card preview`} />
+        <canvas ref={ref} class="preview-canvas" role="img" aria-label={altText(design, data, opts)} />
       ) : (
         <div class="skeleton" aria-hidden="true" />
       )}
@@ -167,8 +173,15 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
         aria-label="Card designs"
         tabIndex={0}
         onKeyDown={(e) => {
-          if (e.key === 'ArrowRight') goTo(Math.min(designs.length - 1, visual + 1));
-          if (e.key === 'ArrowLeft') goTo(Math.max(0, visual - 1));
+          const next =
+            e.key === 'ArrowRight' ? Math.min(designs.length - 1, visual + 1)
+            : e.key === 'ArrowLeft' ? Math.max(0, visual - 1)
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? designs.length - 1
+            : null;
+          if (next === null) return;
+          e.preventDefault(); // the scroller would also scroll natively and skip a page
+          goTo(next);
         }}
       >
         {designs.map((d, i) => {
@@ -212,6 +225,9 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
           );
         })}
       </div>
+      <p class="visually-hidden" aria-live="polite">
+        {designs[visual] ? `${designs[visual].name}, design ${visual + 1} of ${designs.length}` : ''}
+      </p>
       <div class="dots">
         {designs.map((d, i) => (
           <button

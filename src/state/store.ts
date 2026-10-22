@@ -32,11 +32,11 @@ export const DEFAULT_FAVOURITES = ['summary', 'trace', 'pill', 'messages', 'hero
 export const DEFAULT_PREFS: Prefs = {
   designId: 'summary',
   favourites: DEFAULT_FAVOURITES,
-  background: 'transparent', // card only on clear: paste it onto a story or photo
+  background: 'solid', // readable anywhere; Clear is one tap away for photos
   theme: 'dark',
   size: 'sticker',
   accent: null,
-  stats: ['duration', 'energy', 'avgHr'],
+  stats: ['duration', 'distance', 'energy', 'avgHr'], // distance shows only when the file has it
   showGraph: true,
   showLogo: true,
   recentSports: [],

@@ -1979,3 +1979,139 @@ button:disabled {
   width: 28px;
   height: 28px;
 }
+
+/* Text fields get the same focus ring as buttons. */
+.input:focus-visible {
+  outline: 3px solid #1a73e8;
+  outline-offset: 2px;
+}
+
+.search:focus-within {
+  outline: 3px solid #1a73e8;
+  outline-offset: 2px;
+}
+
+.search .input:focus-visible {
+  outline: none;
+}
+
+/* See-through preview: a soft photo-like backdrop that matches the card's theme, so light text
+   stays readable, with a small label saying the real image is see-through. */
+.preview.is-transparent {
+  background:
+    radial-gradient(120% 80% at 20% 10%, rgba(255, 181, 71, 0.35), transparent 60%),
+    radial-gradient(120% 90% at 90% 100%, rgba(80, 140, 255, 0.3), transparent 60%),
+    #5d636c;
+}
+
+.preview.is-transparent::after {
+  content: 'SEE-THROUGH';
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 2px 8px;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.45);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  pointer-events: none;
+}
+
+.preview {
+  position: relative;
+}
+
+/* Landscape phones: let the editor scroll instead of squeezing the card to nothing. */
+@media (orientation: landscape) and (max-height: 520px) {
+  .app {
+    height: auto;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  .stage {
+    min-height: 300px;
+  }
+
+  .sheet-customize {
+    height: 92dvh;
+    max-height: 92dvh;
+  }
+}
+
+/* Done stays reachable at the bottom of Customize. */
+.sheet-customize .sheet-actions {
+  position: sticky;
+  bottom: -24px;
+  padding: 12px 0 8px;
+  background: var(--base);
+}
+
+/* Sticky search covers what scrolls under it. */
+.search {
+  z-index: 3;
+  background: var(--base);
+  box-shadow: 0 -12px 0 var(--base);
+}
+
+.search {
+  background: var(--surface);
+}
+
+.sheet-sports .search {
+  box-shadow: 0 -12px 0 var(--base), 0 0 0 4px var(--base);
+}
+
+.sport-tile {
+  justify-content: flex-start;
+  padding-top: 10px;
+}
+
+/* "Try a sample" reads as a link-button. */
+.home-copy .btn-ghost {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+.howto summary {
+  padding: 0;
+}
+
+.howto[open] summary {
+  margin-bottom: 4px;
+}
+
+.fine-print a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--muted);
+  font-weight: 650;
+}
+
+.fav-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.design-label {
+  font-weight: 800;
+  font-size: 17px;
+}
+
+.collage-caption {
+  position: absolute;
+  right: 6px;
+  bottom: 0;
+  border: 0 !important;
+  box-shadow: none !important;
+  color: var(--muted) !important;
+  font-size: 12px !important;
+  font-weight: 650 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}

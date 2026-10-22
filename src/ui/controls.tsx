@@ -25,13 +25,28 @@ export function Segmented<T extends string>({
         {label}
         {note && <span class="field-note"> · {note}</span>}
       </div>
-      <div class="segmented" role="radiogroup" aria-labelledby={`seg-${label}`}>
+      <div
+        class="segmented"
+        role="radiogroup"
+        aria-labelledby={`seg-${label}`}
+        onKeyDown={(e) => {
+          const step = e.key === 'ArrowRight' || e.key === 'ArrowDown' ? 1 : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? -1 : 0;
+          if (!step || disabled) return;
+          e.preventDefault();
+          const i = options.findIndex((o) => o.value === value);
+          const next = options[(i + step + options.length) % options.length];
+          onChange(next.value);
+          const group = e.currentTarget as HTMLElement;
+          requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+        }}
+      >
         {options.map((o) => (
           <button
             key={o.value}
             type="button"
             role="radio"
             aria-checked={o.value === value}
+            tabIndex={o.value === value ? 0 : -1}
             class={o.value === value ? 'is-on' : ''}
             disabled={disabled}
             onClick={() => onChange(o.value)}

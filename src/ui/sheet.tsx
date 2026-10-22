@@ -44,7 +44,16 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
     const el = ref.current;
     const first = el?.querySelector<HTMLElement>('[data-autofocus]') ?? el;
     first?.focus({ preventScroll: true });
-    return () => previous?.focus?.({ preventScroll: true });
+    return () => {
+      // The page behind is still inert during this cleanup, so restore on the next frame.
+      requestAnimationFrame(() => {
+        const target =
+          previous && previous !== document.body && previous.isConnected
+            ? previous
+            : document.querySelector<HTMLElement>('[data-focus-home]');
+        target?.focus?.({ preventScroll: true });
+      });
+    };
   }, []);
 
   const onKeyDown = (e: KeyboardEvent) => {

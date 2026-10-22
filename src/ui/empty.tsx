@@ -18,7 +18,7 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
           <BrandMark size={30} />
           Sweatshot
         </span>
-        <button type="button" class="icon-btn" onClick={onSettings} aria-label="Settings">
+        <button type="button" class="icon-btn" onClick={onSettings} aria-label="Settings" title="Settings">
           <Icon name="settings-fill" />
         </button>
       </header>
@@ -34,6 +34,7 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
           <b>112 bpm</b>
         </span>
         <span class="collage-pill c4">Tue 20 Oct · 02:02</span>
+        <span class="collage-caption">Example</span>
       </div>
 
       <section class="home-copy">

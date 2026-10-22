@@ -16,7 +16,7 @@ import {
 import { ensureFontsLoaded } from './render/fonts';
 import { availableDesigns, designById, resolveAccent } from './render/registry';
 import { prepareCard, releaseCanvas, renderToNewCanvas } from './render/render';
-import type { CardDesign, CardOptions, StatKey } from './render/types';
+import { MAX_STATS, type CardDesign, type CardOptions, type StatKey } from './render/types';
 import {
   clearPrefs,
   DEFAULT_PREFS,
@@ -32,7 +32,7 @@ import {
 import { sampleWorkout } from './sample';
 import { slugify, sportById } from './sports';
 import { NOTE_NO_HR, parseTcx, type Workout } from './tcx/parse';
-import { formatDuration, isoDate } from './tcx/stats';
+import { formatDuration, isoDate, resolveMaxHr } from './tcx/stats';
 import { Carousel } from './ui/carousel';
 import { EmptyState } from './ui/empty';
 import { Icon } from './ui/icon';
@@ -76,6 +76,8 @@ export function App() {
   const [sportId, setSportId] = useState('workout');
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
+  // Carousel order is fixed while you edit, so starring a design doesn't move it.
+  const [favOrder, setFavOrder] = useState<string[]>(() => prefs.favourites);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -122,6 +124,7 @@ export function App() {
     setWorkoutIdx(i);
     setTitle('');
     setLocation('');
+    setFavOrder(prefs.favourites);
     if (w.sourceSport === 'Running') {
       setSportId('running');
       setSheet(null);
@@ -203,7 +206,11 @@ export function App() {
   // Android share target: the service worker parks the shared file in the Cache API.
   useEffect(() => {
     const url = new URL(window.location.href);
-    if (url.searchParams.get('shared') !== '1') return;
+    if (url.searchParams.get('shared') !== '1') {
+      // A file shared earlier but never opened shouldn't linger.
+      if ('caches' in window) caches.delete(SHARE_CACHE).catch(() => undefined);
+      return;
+    }
     history.replaceState(null, '', url.pathname);
     if (!('caches' in window)) return;
     (async () => {
@@ -237,7 +244,12 @@ export function App() {
     [workout, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride],
   );
   const hasHr = !!workout && workout.hr.length > 1;
-  const designs = useMemo(() => orderDesigns(availableDesigns(hasHr), prefs.favourites), [hasHr, prefs.favourites]);
+  const zonesSet = !workout || !!data?.zones;
+  const designs = useMemo(() => {
+    const ordered = orderDesigns(availableDesigns(hasHr), favOrder);
+    // A locked design (zones not set up yet) goes last so it never interrupts swiping.
+    return zonesSet ? ordered : [...ordered.filter((d) => !d.needsZones), ...ordered.filter((d) => d.needsZones)];
+  }, [hasHr, favOrder, zonesSet]);
   const activeIndex = Math.max(0, designs.findIndex((d) => d.id === prefs.designId));
   const design = designs[activeIndex];
   const available = useMemo(() => (data ? availableStats(data) : []), [data]);
@@ -265,7 +277,7 @@ export function App() {
     ? JSON.stringify([design.id, opts, prefs.size, workout?.start.iso, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride])
     : '';
   const filename = workout
-    ? exportFilename(slugify(sport.id.startsWith('custom:') ? sport.name : sport.id), isoDate(workout.start))
+    ? exportFilename(slugify(sport.id.startsWith('custom:') ? sport.name : sport.id), isoDate(workout.start), design.id)
     : 'sweatshot.png';
 
   // Pre-render the PNG once options settle, so Share can use it inside the click handler.
@@ -311,7 +323,7 @@ export function App() {
   const onDownload = () => {
     if (!data || exportBlocked) return;
     downloadBlob(currentBlob(), filename);
-    showToast('Image saved to your downloads.');
+    showToast('Image saved. Find it in your Downloads or Files app.');
   };
 
   /** Click handler: no awaited work before navigator.share when the cache is fresh. */
@@ -320,7 +332,7 @@ export function App() {
     const blob = currentBlob();
     if (!shareFiles) {
       downloadBlob(blob, filename);
-      showToast('Image saved to your downloads.');
+      showToast('Image saved. Find it in your Downloads or Files app.');
       return;
     }
     const png = blob;
@@ -414,11 +426,22 @@ export function App() {
     </div>
   );
 
+  const onSettingsChange = (patch: Partial<Prefs>) => {
+    const next = { ...prefs, ...patch };
+    const before = prefs.restingHr !== null && resolveMaxHr(prefs.age, prefs.maxHrOverride) !== null;
+    const after = next.restingHr !== null && resolveMaxHr(next.age, next.maxHrOverride) !== null;
+    // The first time zones turn on, put zone minutes on the card too.
+    if (!before && after && !next.stats.includes('zoneMin') && next.stats.length < MAX_STATS) {
+      patch = { ...patch, stats: [...next.stats, 'zoneMin' as StatKey] };
+    }
+    updatePrefs(patch);
+  };
+
   const settingsSheet = sheet === 'settings' && (
     <SettingsSheet
       prefs={prefs}
       hour12={hour12}
-      onChange={updatePrefs}
+      onChange={onSettingsChange}
       onReset={() => {
         clearPrefs();
         setPrefs({ ...DEFAULT_PREFS });
@@ -488,17 +511,20 @@ export function App() {
         </main>
 
         <div class="design-bar">
-          <button
-            type="button"
-            class={`fav-toggle${starred ? ' is-on' : ''}`}
-            aria-pressed={starred}
-            aria-label={starred ? `${design.name}: favourite. Tap to unstar` : `${design.name}: tap to star as a favourite`}
-            onClick={() => onStar(design.id)}
-          >
-            <Icon name={starred ? 'star-fill' : 'star'} />
-            {design.name}
-          </button>
-          <button type="button" class="btn btn-secondary btn-customize" onClick={() => setSheet('customize')}>
+          <div class="fav-row">
+            <span class="design-label">{design.name}</span>
+            <button
+              type="button"
+              class={`star-btn${starred ? ' is-on' : ''}`}
+              aria-pressed={starred}
+              aria-label={`Favourite: ${design.name}`}
+              title={starred ? 'Remove from favourites' : 'Add to favourites'}
+              onClick={() => onStar(design.id)}
+            >
+              <Icon name={starred ? 'star-fill' : 'star'} />
+            </button>
+          </div>
+          <button type="button" class="btn btn-secondary btn-customize" data-focus-home onClick={() => setSheet('customize')}>
             <Icon name="palette" />
             Customize
           </button>
