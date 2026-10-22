@@ -245,7 +245,8 @@ export function SettingsSheet({
         </button>
       </div>
       <p class="fine-print">
-        Settings stay on this device. Your workout file is never uploaded, and it isn’t kept after you close the app.
+        Your settings, favourite designs and recently used sports stay on this phone. Your workout file is never
+        uploaded, and it isn’t kept after you close the app.
         Not affiliated with Google or Fitbit.{' '}
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
           Source code (opens GitHub)
@@ -276,8 +277,10 @@ export function EditSheet({
   onChange,
   onOpenSettings,
   onOpenDesigns,
+  focusDesigns,
   onClose,
 }: {
+  focusDesigns?: boolean;
   design: CardDesign;
   data: CardData;
   prefs: Prefs;
@@ -316,7 +319,7 @@ export function EditSheet({
         onChange={(size) => onChange({ size })}
       />
       <Segmented
-        label="Colours"
+        label="Image colours"
         value={themeLocked ? 'light' : prefs.theme}
         disabled={themeLocked}
         note={themeLocked ? `${design.name} is always light` : undefined}
@@ -372,7 +375,7 @@ export function EditSheet({
 
       {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
 
-      <button type="button" class="row-btn" onClick={onOpenDesigns}>
+      <button type="button" class="row-btn" onClick={onOpenDesigns} data-autofocus={focusDesigns ? true : undefined}>
         <Icon name="grid_view" />
         <span class="row-btn-text">See all designs and pick favourites</span>
       </button>

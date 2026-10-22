@@ -21,10 +21,11 @@ type PreviewProps = {
   live: boolean; // render a canvas (active page ± 1)
   ready: boolean; // fonts loaded
   box: { w: number; h: number };
+  locked?: boolean;
   children?: ComponentChildren;
 };
 
-function CardPreview({ design, data, opts, size, live, ready, box, children }: PreviewProps) {
+function CardPreview({ design, data, opts, size, live, ready, box, locked, children }: PreviewProps) {
   const ref = useRef<HTMLCanvasElement>(null);
   const optsKey = JSON.stringify(opts);
   const layout = useMemo(() => canvasLayout(design, data, opts, size), [design, data, optsKey, size]);
@@ -52,7 +53,7 @@ function CardPreview({ design, data, opts, size, live, ready, box, children }: P
   return (
     <div class={`preview${transparent ? ' is-transparent' : ''}`} style={style}>
       {live && ready ? (
-        <canvas ref={ref} class="preview-canvas" role="img" aria-label={altText(design, data, opts)} />
+        <canvas ref={ref} class="preview-canvas" role="img" aria-label={locked ? `${design.name} card: locked until resting heart rate and age are set in Settings` : altText(design, data, opts)} />
       ) : (
         <div class="skeleton" aria-hidden="true" />
       )}
@@ -172,6 +173,7 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
         aria-roledescription="carousel"
         aria-label="Card designs"
         tabIndex={0}
+        data-focus-home
         onKeyDown={(e) => {
           const next =
             e.key === 'ArrowRight' ? Math.min(designs.length - 1, visual + 1)
@@ -203,6 +205,7 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
                   opts={optsFor(d)}
                   size={size}
                   live={Math.abs(i - visual) <= 1}
+                  locked={locked}
                   ready={ready}
                   box={{ w: pageW, h: frame.h }}
                 >
@@ -229,10 +232,10 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
         {designs[visual] ? `${designs[visual].name}, design ${visual + 1} of ${designs.length}` : ''}
       </p>
       <div class="dots-row">
-        <button type="button" class="nav-btn" aria-label="Previous design" disabled={visual === 0} onClick={() => goTo(Math.max(0, visual - 1))}>
+        <button type="button" class="nav-btn" aria-label="Previous design" aria-disabled={visual === 0} onClick={() => goTo(Math.max(0, visual - 1))}>
           <Icon name="chevron_left" />
         </button>
-      <div class="dots">
+      <div class="dots" aria-hidden="true">
         {designs.map((d, i) => (
           <button
             key={d.id}
@@ -249,7 +252,7 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
           type="button"
           class="nav-btn"
           aria-label="Next design"
-          disabled={visual === designs.length - 1}
+          aria-disabled={visual === designs.length - 1}
           onClick={() => goTo(Math.min(designs.length - 1, visual + 1))}
         >
           <Icon name="chevron_right" />

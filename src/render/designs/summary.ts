@@ -68,10 +68,10 @@ export const summary: CardDesign = {
     drawSportBadge(ctx, data, box.x + PAD, box.y + PAD, BADGE, dark);
     const tx = box.x + PAD + BADGE + 36;
     const tw = box.x + box.w - PAD - tx;
-    const titleSize = fitText(ctx, data.title, tw, { family: SANS, weight: 700, size: TITLE }, 0.62).size;
+    const titleSize = fitText(ctx, data.title, tw, { family: SANS, weight: 700, size: TITLE }, 0.45).size;
     const blockH = titleSize * 1.05 + 14 + SUB * 1.2;
     const top = box.y + PAD + (BADGE - blockH) / 2;
-    drawFitText(ctx, data.title, tx, baseline(top, titleSize), tw, { family: SANS, weight: 700, size: TITLE }, c.ink, 'left', 0.62);
+    drawFitText(ctx, data.title, tx, baseline(top, titleSize), tw, { family: SANS, weight: 700, size: TITLE }, c.ink, 'left', 0.45);
     drawFitText(ctx, metaLine(data), tx, baseline(top + titleSize * 1.05 + 14, SUB), tw, { family: SANS, weight: 400, size: SUB }, c.muted);
 
     // Stat tiles, two per row; a lone last tile spans the row.

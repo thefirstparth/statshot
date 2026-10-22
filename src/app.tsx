@@ -79,6 +79,8 @@ export function App() {
   // Carousel order is fixed while you edit, so starring a design doesn't move it.
   const [favOrder, setFavOrder] = useState<string[]>(() => prefs.favourites);
   const designsFrom = useRef<SheetName | null>(null);
+  const cameFromDesigns = useRef(false);
+  const [lockedAtOpen, setLockedAtOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -131,6 +133,7 @@ export function App() {
     // Never open on a design that can't be saved yet (Zones before zones are set up).
     const max = resolveMaxHr(prefs.age, prefs.maxHrOverride);
     const zonesReady = prefs.restingHr !== null && max !== null && max > prefs.restingHr + 10;
+    setLockedAtOpen(!zonesReady);
     if (!zonesReady && designById(prefs.designId).needsZones) {
       updatePrefs({ designId: prefs.favourites.find((id) => !designById(id).needsZones) ?? 'summary' });
     }
@@ -282,7 +285,8 @@ export function App() {
     [workout, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride],
   );
   const hasHr = !!workout && workout.hr.length > 1;
-  const zonesSet = !workout || !!data?.zones;
+  // Decided when the workout opens, so turning zones on doesn't reshuffle the carousel mid-edit.
+  const zonesSet = !workout || !lockedAtOpen;
   const designs = useMemo(() => {
     const ordered = orderDesigns(availableDesigns(hasHr), favOrder);
     // A locked design (zones not set up yet) goes last so it never interrupts swiping.
@@ -504,14 +508,19 @@ export function App() {
         setPrefs({ ...DEFAULT_PREFS });
         showToast('Settings reset');
       }}
-      onClose={() => setSheet(null)}
+      onClose={() => {
+        setSheet(designsFrom.current);
+        designsFrom.current = null;
+      }}
     />
   );
 
   if (!workouts || !data || !workout) {
     return (
       <>
-        <EmptyState error={error} onImport={openPicker} onSample={onSample} onSettings={() => setSheet('settings')} />
+        <div inert={sheet !== null}>
+          <EmptyState error={error} onImport={openPicker} onSample={onSample} onSettings={() => setSheet('settings')} />
+        </div>
         {fileInputEl}
         {pickSheet}
         {settingsSheet}
@@ -522,6 +531,7 @@ export function App() {
   }
 
   const customizing = sheet === 'customize';
+  if (sheet !== 'customize' && sheet !== 'designs') cameFromDesigns.current = false;
   const summary = `${data.shortDate} · ${formatDuration(workout.durationSec)}`;
   const starred = prefs.favourites.includes(design.id);
   const lockedFor = (d: CardDesign) => zonesLocked && !!d.needsZones;
@@ -589,7 +599,7 @@ export function App() {
               <Icon name={starred ? 'star-fill' : 'star'} />
             </button>
           </div>
-          <button type="button" class="btn btn-secondary btn-customize" data-focus-home onClick={() => setSheet('customize')}>
+          <button type="button" class="btn btn-secondary btn-customize" onClick={() => setSheet('customize')}>
             <Icon name="palette" />
             Customize
           </button>
@@ -658,6 +668,7 @@ export function App() {
           }}
           onStar={onStar}
           onClose={() => {
+            cameFromDesigns.current = designsFrom.current === 'customize';
             setSheet(designsFrom.current);
             designsFrom.current = null;
           }}
@@ -674,7 +685,11 @@ export function App() {
           hasHr={hasHr}
           zonesLocked={zonesLocked}
           onChange={updatePrefs}
-          onOpenSettings={() => setSheet('settings')}
+          onOpenSettings={() => {
+            designsFrom.current = 'customize';
+            setSheet('settings');
+          }}
+          focusDesigns={cameFromDesigns.current}
           onOpenDesigns={() => {
             designsFrom.current = 'customize';
             setSheet('designs');

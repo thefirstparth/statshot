@@ -2280,3 +2280,73 @@ button:disabled {
   color: var(--text);
   box-shadow: 0 0 0 2px var(--ink);
 }
+
+.round-action[aria-disabled='true'] {
+  opacity: 1;
+}
+
+.round-action[aria-disabled='true'] .round-icon,
+.round-action[aria-disabled='true'] > :not(.round-icon) {
+  opacity: 0.45;
+}
+
+.nav-btn[aria-disabled='true'] {
+  opacity: 0.3;
+}
+
+.toggle-link:focus-visible {
+  outline: 3px solid #1a73e8;
+  outline-offset: -3px;
+  border-radius: 12px;
+}
+
+.lock-overlay {
+  background: rgba(255, 244, 228, 0.98);
+}
+
+:root[data-theme='dark'] .lock-overlay {
+  background: rgba(28, 22, 18, 0.98);
+}
+
+/* Short screens: more room for Customize, a smaller collage so the main button stays above the fold. */
+@media (max-height: 720px) and (orientation: portrait) {
+  .sheet-customize {
+    height: 70dvh;
+    max-height: 70dvh;
+  }
+
+  .app.is-customizing {
+    padding-bottom: 70dvh;
+  }
+
+  .collage {
+    height: 150px;
+    margin-top: 0;
+  }
+
+  .collage > * {
+    transform-origin: top left;
+    scale: 0.72;
+  }
+
+  .collage .c4 {
+    display: none;
+  }
+
+  .home-copy {
+    gap: 10px;
+  }
+
+  .home-copy h1 {
+    font-size: clamp(28px, 8.4vw, 36px);
+  }
+}
+
+.collage > * {
+  white-space: nowrap;
+}
+
+.segmented button {
+  font-size: clamp(12.5px, 3.7vw, 16px);
+  line-height: 1.1;
+}

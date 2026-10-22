@@ -151,7 +151,13 @@ export function NumberField({
   // Local text so partial input ("1" on the way to "18") isn't wiped by a re-render.
   const [text, setText] = useState(value === null ? '' : String(value));
   useEffect(() => {
-    setText((t) => (Number(t) === value || (t === '' && value === null) ? t : value === null ? '' : String(value)));
+    setText((t) => {
+      if (Number(t) === value || (t === '' && value === null)) return t;
+      // Keep what was typed while it's out of range, so the error message has something to point at.
+      const n = Number(t);
+      if (value === null && t !== '' && !(Number.isFinite(n) && n >= min && n <= max)) return t;
+      return value === null ? '' : String(value);
+    });
   }, [value]);
   const n = Number(text);
   const invalid = text !== '' && !(Number.isFinite(n) && n >= min && n <= max);
@@ -179,7 +185,7 @@ export function NumberField({
             onChange(Number.isFinite(n) && n >= min && n <= max ? Math.round(n) : null);
           }}
           aria-invalid={invalid}
-          aria-describedby={invalid ? `${id}-err` : undefined}
+          aria-describedby={invalid ? `${id}-err` : note ? `${id}-note` : undefined}
         />
         {suffix && <span class="input-suffix">{suffix}</span>}
       </div>
@@ -188,7 +194,11 @@ export function NumberField({
           Enter a number from {min} to {max}.
         </p>
       ) : (
-        note && <p class="field-help">{note}</p>
+        note && (
+          <p class="field-help" id={`${id}-note`}>
+            {note}
+          </p>
+        )
       )}
     </div>
   );
