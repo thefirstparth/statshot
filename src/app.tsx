@@ -40,6 +40,8 @@ import { DesignsSheet, EditSheet, PickWorkoutSheet, SettingsSheet, WorkoutSheet 
 import { SportSheet } from './ui/sport-sheet';
 import { SportSticker } from './ui/sticker';
 
+const SIZE_NAMES = { sticker: 'card only', story: 'story', post: 'post', square: 'square' } as const;
+
 type SheetName = 'pick' | 'sport' | 'workout' | 'settings' | 'customize' | 'designs';
 
 const ERR_TOO_BIG = 'This file is too large to be a workout export.';
@@ -573,20 +575,36 @@ export function App() {
 
         <div class="design-bar">
           <div class="fav-row">
-            <div class="size-switch" role="radiogroup" aria-label="Image size">
+            <div
+              class="size-switch"
+              role="radiogroup"
+              aria-label={`Image size: ${SIZE_NAMES[prefs.size]}`}
+              onKeyDown={(e) => {
+                if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
+                e.preventDefault();
+                const next = prefs.size === 'story' ? 'sticker' : 'story';
+                updatePrefs({ size: next });
+                const group = e.currentTarget as HTMLElement;
+                requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+              }}
+            >
               {(['sticker', 'story'] as const).map((sz) => (
                 <button
                   key={sz}
                   type="button"
                   role="radio"
                   aria-checked={prefs.size === sz}
+                  tabIndex={prefs.size === sz || (sz === 'sticker' && prefs.size !== 'story') ? 0 : -1}
                   class={prefs.size === sz ? 'is-on' : ''}
                   onClick={() => updatePrefs({ size: sz })}
                 >
-                  {sz === 'sticker' ? 'Card' : 'Story'}
+                  {sz === 'sticker' ? 'Card only' : 'Story'}
                 </button>
               ))}
             </div>
+            <p class="visually-hidden" aria-live="polite">
+              Image size: {SIZE_NAMES[prefs.size]}
+            </p>
             <span class="design-label">{design.name}</span>
             <button
               type="button"
@@ -635,7 +653,19 @@ export function App() {
 
       {pickSheet}
       {sheet === 'sport' && (
-        <SportSheet currentId={sportId} recent={prefs.recentSports} onPick={onPickSport} onClose={() => setSheet(null)} />
+        <SportSheet
+          currentId={sportId}
+          recent={prefs.recentSports}
+          onPick={(id) => {
+            onPickSport(id);
+            setSheet(designsFrom.current);
+            designsFrom.current = null;
+          }}
+          onClose={() => {
+            setSheet(designsFrom.current);
+            designsFrom.current = null;
+          }}
+        />
       )}
       {sheet === 'workout' && (
         <WorkoutSheet
@@ -643,7 +673,10 @@ export function App() {
           title={title}
           location={location}
           canPickAnother={workouts.length > 1}
-          onChangeSport={() => setSheet('sport')}
+          onChangeSport={() => {
+            designsFrom.current = 'workout';
+            setSheet('sport');
+          }}
           onTitle={setTitle}
           onLocation={setLocation}
           onPickAnother={() => setSheet('pick')}

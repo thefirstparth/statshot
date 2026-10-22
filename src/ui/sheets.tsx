@@ -92,7 +92,7 @@ export function WorkoutSheet({
           class="input"
           type="text"
           maxLength={MAX_TITLE}
-          placeholder={sport.name}
+          placeholder={`e.g. Morning ${sport.lower}`}
           value={title}
           enterKeyHint="done"
           onInput={(e) => onTitle((e.currentTarget as HTMLInputElement).value)}
@@ -245,8 +245,8 @@ export function SettingsSheet({
         </button>
       </div>
       <p class="fine-print">
-        Your settings, favourite designs and recently used sports stay on this phone. Your workout file is never
-        uploaded, and it isn’t kept after you close the app.
+        Only your preferences (settings, favourite designs, recent sports and how you last set up a card) are saved
+        on this phone. Your workout file is never uploaded and never saved.
         Not affiliated with Google or Fitbit.{' '}
         <a href={REPO_URL} target="_blank" rel="noopener noreferrer">
           Source code (opens GitHub)
@@ -368,7 +368,12 @@ export function EditSheet({
 
       <div class="toggle-list">
         {design.supportsGraph && hasHr && (
-          <Toggle label="Heart-rate line" checked={prefs.showGraph} onChange={(showGraph) => onChange({ showGraph })} />
+          <Toggle
+            label="Heart-rate line"
+            hint="Your heart rate during the workout, drawn as a line"
+            checked={prefs.showGraph}
+            onChange={(showGraph) => onChange({ showGraph })}
+          />
         )}
         <Toggle label="Show Sweatshot mark" checked={prefs.showLogo} onChange={(showLogo) => onChange({ showLogo })} />
       </div>

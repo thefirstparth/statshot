@@ -10,7 +10,11 @@ const GAP = 12;
 /** What the card says, for screen readers. */
 function altText(design: CardDesign, data: CardData, opts: CardOptions): string {
   const stats = opts.stats.map((k) => data.stats[k]?.value).filter(Boolean).join(', ');
-  return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${stats ? `. ${stats}` : ''}`;
+  const zones =
+    design.needsZones && data.zones
+      ? `. Zone minutes ${data.zones.zoneMinutes}: peak ${Math.round(data.zones.peak)} min, vigorous ${Math.round(data.zones.vigorous)} min, moderate ${Math.round(data.zones.moderate)} min, light ${Math.round(data.zones.light)} min`
+      : '';
+  return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${stats ? `. ${stats}` : ''}${zones}`;
 }
 
 type PreviewProps = {
