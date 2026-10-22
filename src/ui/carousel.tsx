@@ -228,6 +228,10 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
       <p class="visually-hidden" aria-live="polite">
         {designs[visual] ? `${designs[visual].name}, design ${visual + 1} of ${designs.length}` : ''}
       </p>
+      <div class="dots-row">
+        <button type="button" class="nav-btn" aria-label="Previous design" disabled={visual === 0} onClick={() => goTo(Math.max(0, visual - 1))}>
+          <Icon name="chevron_left" />
+        </button>
       <div class="dots">
         {designs.map((d, i) => (
           <button
@@ -240,6 +244,16 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
             onClick={() => goTo(i)}
           />
         ))}
+      </div>
+        <button
+          type="button"
+          class="nav-btn"
+          aria-label="Next design"
+          disabled={visual === designs.length - 1}
+          onClick={() => goTo(Math.min(designs.length - 1, visual + 1))}
+        >
+          <Icon name="chevron_right" />
+        </button>
       </div>
     </div>
   );

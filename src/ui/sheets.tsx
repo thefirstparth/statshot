@@ -355,7 +355,7 @@ export function EditSheet({
           <button type="button" class="toggle-row toggle-link" onClick={onOpenSettings}>
             <span class="toggle-text">
               Zone minutes (how hard you worked)
-              <span class="toggle-hint">Tap to open Settings and enter resting heart rate and age</span>
+              <span class="toggle-hint">Opens Settings, where you enter resting heart rate and age</span>
             </span>
             <Icon name="chevron_right" />
           </button>
@@ -452,7 +452,7 @@ export function DesignsSheet({
           type="button"
           class={`star-btn${starred ? ' is-on' : ''}`}
           aria-pressed={starred}
-          aria-label={starred ? `Unstar ${d.name}` : `Star ${d.name}`}
+          aria-label={`Favourite: ${d.name}`}
           data-star={d.id}
           onClick={() => {
             onStar(d.id);

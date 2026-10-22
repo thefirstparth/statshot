@@ -672,6 +672,7 @@ button:disabled {
 }
 
 .sheet-body {
+  scroll-padding-bottom: 110px;
   flex: 1;
   min-height: 0;
   overflow-y: auto;
@@ -2134,17 +2135,10 @@ button:disabled {
   letter-spacing: 0.08em;
 }
 
-/* Toasts sit at the top so they never cover the action buttons or a sheet row. */
+/* Toasts sit just above the design name and actions: they cover neither the title nor a button. */
 .toast {
-  top: calc(var(--safe-top) + 12px);
-  bottom: auto;
-}
-
-@keyframes toast-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -12px);
-  }
+  top: auto;
+  bottom: calc(var(--safe-bottom) + 236px);
 }
 
 /* Landscape phones: Customize becomes a side panel so the card stays visible. */
@@ -2170,4 +2164,50 @@ button:disabled {
 .dots {
   padding-left: 16px;
   padding-right: 16px;
+}
+
+.carousel:focus-visible {
+  outline-offset: -4px;
+}
+
+.input[type='number']::-webkit-inner-spin-button,
+.input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.input[type='number'] {
+  -moz-appearance: textfield;
+}
+
+.dots-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.nav-btn {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-btn:disabled {
+  opacity: 0.3;
+}
+
+.nav-btn:hover:not(:disabled) {
+  background: var(--surface-2);
+}
+
+.round-action[aria-disabled='true'] {
+  opacity: 0.45;
 }

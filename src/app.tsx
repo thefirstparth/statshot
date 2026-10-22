@@ -78,6 +78,7 @@ export function App() {
   const [location, setLocation] = useState('');
   // Carousel order is fixed while you edit, so starring a design doesn't move it.
   const [favOrder, setFavOrder] = useState<string[]>(() => prefs.favourites);
+  const designsFrom = useRef<SheetName | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [sheet, setSheet] = useState<SheetName | null>(null);
   const [toast, setToast] = useState<{ id: number; text: string } | null>(null);
@@ -95,6 +96,11 @@ export function App() {
   useAppearance(prefs.appearance);
 
   const showToast = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
+  // A sheet opening clears any toast so the two never overlap.
+  useEffect(() => {
+    if (sheet) setToast(null);
+  }, [sheet]);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 2800);
@@ -121,6 +127,12 @@ export function App() {
 
   const selectWorkout = (list: Workout[], i: number) => {
     const w = list[i];
+    // Never open on a design that can't be saved yet (Zones before zones are set up).
+    const max = resolveMaxHr(prefs.age, prefs.maxHrOverride);
+    const zonesReady = prefs.restingHr !== null && max !== null && max > prefs.restingHr + 10;
+    if (!zonesReady && designById(prefs.designId).needsZones) {
+      updatePrefs({ designId: prefs.favourites.find((id) => !designById(id).needsZones) ?? 'summary' });
+    }
     setWorkouts(list);
     setPending(null);
     setWorkoutIdx(i);
@@ -346,8 +358,11 @@ export function App() {
   };
 
   const busy = useRef(0);
+  const blockedReason = () => showToast('Zones need your resting heart rate and age. Add them in Settings to save this design.');
+
   const onDownload = () => {
-    if (!data || exportBlocked) return;
+    if (!data) return;
+    if (exportBlocked) return blockedReason();
     // A quick double or triple tap saves once.
     if (performance.now() - busy.current < 1200) return;
     busy.current = performance.now();
@@ -357,7 +372,8 @@ export function App() {
 
   /** Click handler: no awaited work before navigator.share when the cache is fresh. */
   const onShare = () => {
-    if (!data || exportBlocked) return;
+    if (!data) return;
+    if (exportBlocked) return blockedReason();
     const blob = currentBlob();
     if (!shareFiles) {
       downloadBlob(blob, filename);
@@ -377,7 +393,8 @@ export function App() {
 
   /** Click handler: ClipboardItem gets the promise synchronously (Safari's pattern). */
   const onCopy = () => {
-    if (!data || exportBlocked) return;
+    if (!data) return;
+    if (exportBlocked) return blockedReason();
     const cached = cachedBlob(exportKey);
     const blob = cached
       ? Promise.resolve(cached)
@@ -522,6 +539,7 @@ export function App() {
         {!hasHr && <p class="note">{NOTE_NO_HR} Heart-rate designs are hidden.</p>}
 
 
+        <h1 class="visually-hidden">Choose a design, then save or share it</h1>
         <main class="stage" inert={customizing}>
           <Carousel
             designs={designs}
@@ -558,14 +576,14 @@ export function App() {
         </div>
 
         <nav class="action-row" aria-label="Save or share">
-          <button type="button" class="round-action" onClick={onDownload} disabled={exportBlocked}>
+          <button type="button" class="round-action" onClick={onDownload} aria-disabled={exportBlocked}>
             <span class="round-icon">
               <Icon name="download" />
             </span>
             Save image
           </button>
           {copyImages && (
-            <button type="button" class="round-action" onClick={onCopy} disabled={exportBlocked}>
+            <button type="button" class="round-action" onClick={onCopy} aria-disabled={exportBlocked}>
               <span class="round-icon">
                 <Icon name="content_copy" />
               </span>
@@ -573,7 +591,7 @@ export function App() {
             </button>
           )}
           {shareFiles && (
-            <button type="button" class="round-action is-primary" onClick={onShare} disabled={exportBlocked}>
+            <button type="button" class="round-action is-primary" onClick={onShare} aria-disabled={exportBlocked}>
               <span class="round-icon">
                 <Icon name="ios_share" />
               </span>
@@ -615,10 +633,14 @@ export function App() {
           ready={fontsReady}
           onPick={(id) => {
             updatePrefs({ designId: designById(id).id });
-            setSheet(null);
+            setSheet(designsFrom.current);
+            designsFrom.current = null;
           }}
           onStar={onStar}
-          onClose={() => setSheet(null)}
+          onClose={() => {
+            setSheet(designsFrom.current);
+            designsFrom.current = null;
+          }}
         />
       )}
       {customizing && (
@@ -633,7 +655,10 @@ export function App() {
           zonesLocked={zonesLocked}
           onChange={updatePrefs}
           onOpenSettings={() => setSheet('settings')}
-          onOpenDesigns={() => setSheet('designs')}
+          onOpenDesigns={() => {
+            designsFrom.current = 'customize';
+            setSheet('designs');
+          }}
           onClose={() => setSheet(null)}
         />
       )}
