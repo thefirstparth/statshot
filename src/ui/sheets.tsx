@@ -192,7 +192,7 @@ export function SettingsSheet({
             ? 'Zones are on.'
             : zonesConflict
               ? 'Max heart rate must be well above resting heart rate. Check both numbers.'
-              : 'Zones are off until resting heart rate and age are set.'}
+              : 'Zones are off until resting heart rate and age are both filled in with valid numbers.'}
         </p>
       </section>
 

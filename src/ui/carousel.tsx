@@ -216,7 +216,7 @@ export function Carousel({ designs, activeIndex, onActiveChange, data, optsFor, 
                   {locked && (
                     <div class="lock-overlay">
                       <Icon name="monitor_heart" class="icon-lg" />
-                      <p>Zones need your resting heart rate and age. Add or check them in Settings.</p>
+                      <p>Zones are off. Add or check your resting heart rate and age in Settings.</p>
                       <button type="button" class="btn btn-primary" onClick={onOpenSettings} tabIndex={current ? 0 : -1}>
                         Open settings
                       </button>
