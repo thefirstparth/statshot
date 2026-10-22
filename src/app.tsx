@@ -96,10 +96,11 @@ export function App() {
   useAppearance(prefs.appearance);
 
   const showToast = useCallback((text: string) => setToast({ id: Date.now(), text }), []);
-  // A sheet opening clears any toast so the two never overlap.
+  // A sheet opening, or swiping to another design, clears any toast.
   useEffect(() => {
     if (sheet) setToast(null);
   }, [sheet]);
+  useEffect(() => setToast(null), [prefs.designId]);
 
   useEffect(() => {
     if (!toast) return;
@@ -440,7 +441,7 @@ export function App() {
     setSportId('pickleball');
     setTitle('Sample pickleball');
     setSheet(null);
-    showToast('This is a made-up sample. To use your own, tap the title at the top.');
+    showToast('This is a made-up sample. To open your own file, tap “Sample pickleball” at the top.');
   };
 
   const onStar = (id: string) => {
@@ -562,6 +563,20 @@ export function App() {
 
         <div class="design-bar">
           <div class="fav-row">
+            <div class="size-switch" role="radiogroup" aria-label="Image size">
+              {(['sticker', 'story'] as const).map((sz) => (
+                <button
+                  key={sz}
+                  type="button"
+                  role="radio"
+                  aria-checked={prefs.size === sz}
+                  class={prefs.size === sz ? 'is-on' : ''}
+                  onClick={() => updatePrefs({ size: sz })}
+                >
+                  {sz === 'sticker' ? 'Card' : 'Story'}
+                </button>
+              ))}
+            </div>
             <span class="design-label">{design.name}</span>
             <button
               type="button"

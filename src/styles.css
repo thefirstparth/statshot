@@ -2253,3 +2253,30 @@ button:disabled {
   max-width: 440px;
   padding: 0;
 }
+
+/* Card | Story right on the main screen; Post and Square live in Customize. */
+.size-switch {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  margin-right: 8px;
+}
+
+.size-switch button {
+  min-height: 40px;
+  min-width: 56px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 750;
+  font-size: 14px;
+}
+
+.size-switch button.is-on {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 0 0 2px var(--ink);
+}
