@@ -104,7 +104,7 @@ export function App() {
   useEffect(() => {
     if (sheet) setToast(null);
   }, [sheet]);
-  useEffect(() => setToast(null), [prefs.designId]);
+  useEffect(() => setToast(null), [prefs.designId, workouts]);
 
   useEffect(() => {
     if (!toast) return;
@@ -321,7 +321,11 @@ export function App() {
     ? JSON.stringify([design.id, opts, prefs.size, workout?.start.iso, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride])
     : '';
   const filename = workout
-    ? exportFilename(slugify(sport.id.startsWith('custom:') ? sport.name : sport.id), isoDate(workout.start), design.id)
+    ? exportFilename(
+        slugify(sport.id.startsWith('custom:') ? sport.name : sport.id),
+        isoDate(workout.start),
+        prefs.size === 'sticker' ? design.id : `${design.id}-${prefs.size}`,
+      )
     : 'sweatshot.png';
 
   // Pre-render the PNG once options settle, so Share can use it inside the click handler.

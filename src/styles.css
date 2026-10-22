@@ -2357,3 +2357,7 @@ button:disabled {
   font-size: 10px;
   padding: 1px 6px;
 }
+
+.round-action[aria-disabled='true'] {
+  color: var(--muted);
+}
