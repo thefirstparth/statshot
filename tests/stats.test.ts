@@ -3,6 +3,7 @@ import { availableStats, buildCardData } from '../src/card-data';
 import { exportFilename } from '../src/export/export';
 import { splitRows, statRows, visibleStats } from '../src/render/canvas';
 import { statSentence } from '../src/render/designs/messages';
+import { metaLine, shortPlace } from '../src/render/designs/shared';
 import type { CardOptions, StatItem } from '../src/render/types';
 import { slugify, sportById, customSportId } from '../src/sports';
 import { DEFAULT_PREFS, loadPrefs, orderDesigns, pushRecent, savePrefs, toggleFavourite } from '../src/state/store';
@@ -271,6 +272,14 @@ describe('preferences', () => {
     expect(p.designId).toBe(DEFAULT_PREFS.designId); // retired design falls back
   });
 
+  it('starts with no designs starred and clears the old pre-starred five', () => {
+    expect(DEFAULT_PREFS.favourites).toEqual([]);
+    localStorage.setItem('sweatshot:prefs:v1', JSON.stringify({ favourites: ['summary', 'trace', 'pill', 'messages', 'hero'] }));
+    expect(loadPrefs().favourites).toEqual([]);
+    localStorage.setItem('sweatshot:prefs:v1', JSON.stringify({ favourites: ['receipt', 'dial'] }));
+    expect(loadPrefs().favourites).toEqual(['receipt', 'dial']);
+  });
+
   it('keeps the last 6 recent sports, newest first', () => {
     let r: string[] = [];
     for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'b', 'g']) r = pushRecent(r, id);
@@ -283,5 +292,22 @@ describe('preferences', () => {
     expect(toggleFavourite(['a', 'b', 'c', 'd', 'e'], 'f')).toBeNull();
     const d = ['a', 'b', 'c', 'd'].map((id) => ({ id }));
     expect(orderDesigns(d, ['c', 'a']).map((x) => x.id)).toEqual(['c', 'a', 'b', 'd']);
+  });
+});
+
+describe('location on cards', () => {
+  const at = (location: string) => ({ location, weekday: 'Tue', shortDate: '20 Oct', timeText: '18:30' }) as Parameters<typeof shortPlace>[0];
+
+  it('keeps short places and drops the time to make room', () => {
+    expect(shortPlace(at('Court 3'))).toBe('Court 3');
+    expect(metaLine(at('Court 3'))).toBe('Tue 20 Oct · Court 3');
+    expect(metaLine(at(''))).toBe('Tue 20 Oct · 18:30');
+  });
+
+  it('shortens long places at the comma, else with an ellipsis', () => {
+    expect(shortPlace(at('Riverside Sports Club, Bengaluru'))).toBe('Riverside Sports Club');
+    const cut = shortPlace(at('The Very Long Community Recreation Centre'));
+    expect(Array.from(cut)).toHaveLength(26);
+    expect(cut.endsWith('…')).toBe(true);
   });
 });

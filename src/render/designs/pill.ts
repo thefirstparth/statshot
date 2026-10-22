@@ -4,6 +4,7 @@ import { measureContext } from '../env';
 import { drawIconPath } from '../icons';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem, StatKey } from '../types';
 import { CATEGORY_SHAPES, sportById } from '../../sports';
+import { shortPlace } from './shared';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -137,7 +138,7 @@ function layout(ctx: Ctx, width: number, data: CardData, opts: CardOptions) {
   const textMax = width - MAIN_PAD_L - STICKER - MAIN_GAP - MAIN_PAD_R;
   const heading = fitText(ctx, data.title, textMax, HEADING, 0.7);
   const headingW = ctx.measureText(heading.text).width;
-  const lineText = [`${data.weekday} ${data.shortDate}`, data.location || data.timeText].join(' · ');
+  const lineText = [`${data.weekday} ${data.shortDate}`, shortPlace(data, 22) || data.timeText].join(' · ');
   const line = fitText(ctx, lineText, textMax, LINE, 0.85);
   const lineW = ctx.measureText(line.text).width;
   const mainW = Math.ceil(MAIN_PAD_L + STICKER + MAIN_GAP + Math.max(headingW, lineW) + MAIN_PAD_R);

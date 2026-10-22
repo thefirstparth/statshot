@@ -27,7 +27,11 @@ export type Prefs = {
 export const MAX_FAVOURITES = 5;
 export const MAX_RECENT_SPORTS = 6;
 
-export const DEFAULT_FAVOURITES = ['summary', 'trace', 'pill', 'messages', 'hero'];
+/** Nothing is starred until you star it; the catalogue order already puts the strongest first. */
+export const DEFAULT_FAVOURITES: string[] = [];
+
+/** What earlier versions saved as everyone's favourites without anyone choosing them. */
+const OLD_DEFAULT_FAVOURITES = ['summary', 'trace', 'pill', 'messages', 'hero'];
 
 export const DEFAULT_PREFS: Prefs = {
   designId: 'summary',
@@ -74,6 +78,7 @@ export function loadPrefs(): Prefs {
   if (typeof raw.designId === 'string' && ids.has(raw.designId)) p.designId = raw.designId;
   if (Array.isArray(raw.favourites)) {
     p.favourites = [...new Set(raw.favourites.filter((x): x is string => typeof x === 'string' && ids.has(x)))].slice(0, MAX_FAVOURITES);
+    if (p.favourites.join() === OLD_DEFAULT_FAVOURITES.join()) p.favourites = [];
   }
   if (raw.background === 'transparent' || raw.background === 'solid') p.background = raw.background;
   if (raw.theme === 'light' || raw.theme === 'dark') p.theme = raw.theme;

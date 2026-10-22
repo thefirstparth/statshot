@@ -1,7 +1,7 @@
 import { drawFitText, rgba, statRows, visibleStats } from '../canvas';
 import { SERIF } from '../font-faces';
 import type { CardData, CardDesign, CardOptions, Rect } from '../types';
-import { baseline, drawStatGrid, statGridHeight, type StatGridStyle } from './shared';
+import { baseline, drawStatGrid, shortPlace, statGridHeight, type StatGridStyle } from './shared';
 
 const TOP = 24;
 const TITLE = 120;
@@ -63,7 +63,7 @@ export const editorial: CardDesign = {
     drawFitText(ctx, data.title, cx, box.y + baseline(L.titleTop, TITLE) - 8, maxW, { family: SERIF, weight: 400, size: TITLE, style: 'italic' }, ink, 'center');
     drawFitText(
       ctx,
-      [`${data.dateText}, ${data.timeText}`, data.location].filter(Boolean).join(' · '),
+      data.location ? `${data.dateText} · ${shortPlace(data)}` : `${data.dateText}, ${data.timeText}`,
       cx,
       box.y + baseline(L.dateTop, DATE),
       maxW,

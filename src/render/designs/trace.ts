@@ -16,7 +16,7 @@ import { SANS } from '../font-faces';
 import { measureContext } from '../env';
 import { drawIconPath } from '../icons';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { baseline } from './shared';
+import { baseline, shortPlace } from './shared';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -68,8 +68,8 @@ export function palette(data: CardData, opts: CardOptions): Palette {
 /** "Tue 20 Oct · 02:02 · Smash Club" */
 export function metaLine(data: CardData, withTime = true): string {
   const parts = [`${data.weekday} ${data.shortDate}`];
-  if (withTime) parts.push(data.timeText);
-  if (data.location) parts.push(data.location);
+  if (withTime && !data.location) parts.push(data.timeText);
+  if (data.location) parts.push(shortPlace(data));
   return parts.join(' · ');
 }
 

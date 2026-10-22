@@ -1,5 +1,6 @@
 import { renderEnv } from './env';
-import { loadIcons } from './icons';
+import { luminance, roundRectPath } from './canvas';
+import { drawIconPath, loadIcons } from './icons';
 import type { CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
 
 export const CARD_WIDTH = 920;
@@ -50,13 +51,46 @@ export function canvasLayout(
   return { width: w, height: h, x: Math.round((w - cw) / 2), y: Math.round(y), scale, box };
 }
 
-/** See-through text-only cards: a soft halo keeps them readable on any photo. */
-function applyFloatingShadow(ctx: CanvasRenderingContext2D, design: CardDesign, opts: CardOptions): void {
+/**
+ * See-through text-only cards get a soft frosted panel (dark behind light text, light behind dark
+ * text) so they stay readable on any photo, plus a gentle halo on the text itself.
+ */
+function applyFloatingShadow(ctx: CanvasRenderingContext2D, design: CardDesign, opts: CardOptions, box?: Rect): void {
   if (!design.floating || opts.background !== 'transparent') return;
+  if (box) {
+    const pad = 28;
+    ctx.save();
+    roundRectPath(ctx, box.x - pad, box.y - pad, box.w + pad * 2, box.h + pad * 2, 56);
+    ctx.fillStyle = opts.theme === 'dark' ? 'rgba(12, 12, 14, 0.42)' : 'rgba(255, 255, 255, 0.6)';
+    ctx.fill();
+    ctx.restore();
+  }
   ctx.shadowColor = opts.theme === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)';
   ctx.shadowBlur = 26;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 2;
+}
+
+/**
+ * A compact card on a tall Story would float in empty space; a huge, faint sport glyph behind it
+ * makes the frame feel designed. Solid backgrounds only (see-through stays clean for photos).
+ */
+function drawStoryBackdrop(
+  ctx: CanvasRenderingContext2D,
+  design: CardDesign,
+  data: CardData,
+  opts: CardOptions,
+  size: SizeKey,
+  layout: CanvasLayout,
+): void {
+  if (size !== 'story') return;
+  const cardH = layout.box.h * layout.scale;
+  if (cardH > layout.height * 0.62) return;
+  const bg = design.background(opts);
+  const glyph = luminance(bg) > 0.45 ? 'rgba(0, 0, 0, 0.05)' : 'rgba(255, 255, 255, 0.06)';
+  const s = layout.width * 1.15;
+  drawIconPath(ctx, data.sportIcon, glyph, layout.width - s * 0.7, layout.height - s * 0.78, s);
+  drawIconPath(ctx, data.sportIcon, glyph, -s * 0.38, -s * 0.3, s * 0.75);
 }
 
 /** Decode everything a card needs before drawing it (fonts are loaded once at app start). */
@@ -84,11 +118,12 @@ export function renderCard(
   if (opts.background === 'solid') {
     ctx.fillStyle = design.background(opts);
     ctx.fillRect(0, 0, layout.width, layout.height);
+    drawStoryBackdrop(ctx, design, data, opts, size, layout);
   }
   ctx.save();
   ctx.translate(layout.x, layout.y);
   ctx.scale(layout.scale, layout.scale);
-  applyFloatingShadow(ctx, design, opts);
+  applyFloatingShadow(ctx, design, opts, layout.box);
   design.draw(ctx, layout.box, data, opts);
   ctx.restore();
   return layout;
@@ -119,7 +154,7 @@ export function renderThumb(
   ctx.translate(layout.x, layout.y);
   ctx.scale(layout.scale, layout.scale);
   ctx.save();
-  applyFloatingShadow(ctx, design, opts);
+  applyFloatingShadow(ctx, design, opts, layout.box);
   design.draw(ctx, layout.box, data, opts);
   ctx.restore();
   ctx.setTransform(1, 0, 0, 1, 0, 0);
