@@ -2240,3 +2240,8 @@ button:disabled {
   max-width: 100%;
   overflow-wrap: anywhere;
 }
+
+:root[data-theme='dark'] .lock-overlay {
+  background: rgba(28, 22, 18, 0.95);
+  color: #fff4e4;
+}

@@ -73,7 +73,7 @@ export function buildCardData(inp: CardInputs): CardData {
   }
   if (zones) {
     const z = String(zones.zoneMinutes);
-    add('zoneMin', { label: 'Zone minutes', short: 'Zone min', value: `${z} min`, number: z, unit: 'zone min', phrase: `${z} zone minutes` });
+    add('zoneMin', { label: 'Zone minutes', short: 'Zone min', value: `${z} zone min`, number: z, unit: 'zone min', phrase: `${z} zone minutes` });
   }
   const distanceText = w.distanceM !== null ? formatDistance(w.distanceM, inp.distanceUnit) : null;
   if (distanceText) {

@@ -100,7 +100,7 @@ export function WorkoutSheet({
       </div>
       <div class="field">
         <label class="field-label" for="location-input">
-          Where <span class="field-note">· optional, shown on the card</span>
+          Where <span class="field-note">· optional, up to {MAX_LOCATION} characters</span>
         </label>
         <input
           id="location-input"

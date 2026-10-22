@@ -9,8 +9,9 @@ const STATS_H = 52 + 10 + 30;
 const LOGO = 28;
 
 function colors(data: CardData, opts: CardOptions) {
+  const clear = opts.background === 'transparent';
   return opts.theme === 'dark'
-    ? { ink: '#F1F2F4', muted: 'rgba(241,242,244,0.66)', track: 'rgba(255,255,255,0.14)', tick: 'rgba(255,255,255,0.34)', faint: 'rgba(255,255,255,0.42)', accent: data.sportColors.bg }
+    ? { ink: '#F1F2F4', muted: clear ? 'rgba(241,242,244,0.9)' : 'rgba(241,242,244,0.66)', track: clear ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.14)', tick: clear ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.34)', faint: clear ? 'rgba(255,255,255,0.8)' : 'rgba(255,255,255,0.42)', accent: data.sportColors.bg }
     : { ink: '#1A1C1E', muted: 'rgba(26,28,30,0.62)', track: 'rgba(0,0,0,0.09)', tick: 'rgba(0,0,0,0.28)', faint: 'rgba(0,0,0,0.38)', accent: data.sportColors.strong };
 }
 
@@ -91,7 +92,8 @@ export const dial: CardDesign = {
     ctx.textBaseline = 'alphabetic';
 
     // The session arc.
-    const mins = Math.max(data.durationSec / 60, 6);
+    // Short sessions still get a visible arc (at least ~40 minutes of the dial).
+    const mins = Math.max(data.durationSec / 60, 40);
     ctx.beginPath();
     ctx.arc(cx, cy, R, angle(data.startMin), angle(data.startMin + Math.min(mins, 1439)));
     ctx.strokeStyle = c.accent;

@@ -53,8 +53,8 @@ export function canvasLayout(
 /** See-through text-only cards: a soft halo keeps them readable on any photo. */
 function applyFloatingShadow(ctx: CanvasRenderingContext2D, design: CardDesign, opts: CardOptions): void {
   if (!design.floating || opts.background !== 'transparent') return;
-  ctx.shadowColor = opts.theme === 'dark' ? 'rgba(0, 0, 0, 0.55)' : 'rgba(255, 255, 255, 0.75)';
-  ctx.shadowBlur = 18;
+  ctx.shadowColor = opts.theme === 'dark' ? 'rgba(0, 0, 0, 0.8)' : 'rgba(255, 255, 255, 0.9)';
+  ctx.shadowBlur = 26;
   ctx.shadowOffsetX = 0;
   ctx.shadowOffsetY = 2;
 }

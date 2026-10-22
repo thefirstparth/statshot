@@ -358,14 +358,16 @@ export function App() {
   };
 
   const busy = useRef(0);
+  const lastSaved = useRef('');
   const blockedReason = () => showToast('Zones need your resting heart rate and age. Add them in Settings to save this design.');
 
   const onDownload = () => {
     if (!data) return;
     if (exportBlocked) return blockedReason();
-    // A quick double or triple tap saves once.
-    if (performance.now() - busy.current < 1200) return;
+    // A quick double or triple tap saves the same image once; a different design saves straight away.
+    if (lastSaved.current === exportKey && performance.now() - busy.current < 900) return;
     busy.current = performance.now();
+    lastSaved.current = exportKey;
     downloadBlob(currentBlob(), filename);
     showToast('Image saved. Find it in your Downloads or Files app.');
   };
@@ -443,8 +445,11 @@ export function App() {
 
   const onStar = (id: string) => {
     const next = toggleFavourite(prefs.favourites, id);
-    if (!next) return showToast(`You can star up to ${MAX_FAVOURITES}. Unstar one first.`);
-    updatePrefs({ favourites: next });
+    if (next) return updatePrefs({ favourites: next });
+    // Full: the oldest favourite makes room for the new one.
+    const [oldest, ...rest] = prefs.favourites;
+    updatePrefs({ favourites: [...rest, id] });
+    showToast(`Starred ${designById(id).name}. ${designById(oldest).name} is no longer a favourite (max ${MAX_FAVOURITES}).`);
   };
 
   const dropOverlay = dragging && (

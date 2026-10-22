@@ -14,6 +14,7 @@ const SEC_VALUE = 84;
 const SEC_LABEL = 34;
 const SEC_ROW = SEC_VALUE + 10 + SEC_LABEL * 1.2;
 const LOGO = 30;
+const INSET = 48;
 
 function ink(opts: CardOptions) {
   return opts.theme === 'dark' ? { ink: '#FFFFFF', muted: 'rgba(255,255,255,0.68)' } : { ink: '#15171A', muted: 'rgba(21,23,26,0.62)' };
@@ -53,13 +54,15 @@ export const hero: CardDesign = {
   },
 
   measure(_w, data, opts) {
-    return { h: layout(data, opts).h };
+    return { h: layout(data, opts).h + INSET * 2 };
   },
 
   draw(ctx: CanvasRenderingContext2D, box: Rect, data: CardData, opts: CardOptions) {
     const { ink: text, muted } = ink(opts);
     const accent = readable(opts.accent, opts);
     const L = layout(data, opts);
+    // Breathing room so the big number never runs to the image edge.
+    box = { x: box.x + INSET, y: box.y + INSET, w: box.w - INSET * 2, h: box.h - INSET * 2 };
     const x = box.x;
     const w = box.w;
 
