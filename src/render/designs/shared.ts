@@ -148,5 +148,17 @@ export function drawSportBadge(ctx: CanvasRenderingContext2D, data: CardData, x:
 
 /** "Tue 20 Oct · 02:02 · Smash Club" */
 export function metaLine(data: CardData, withTime = true): string {
-  return [`${data.weekday} ${data.shortDate}`, withTime ? data.timeText : '', data.location].filter(Boolean).join(' · ');
+  // With a place, the time makes way so the line stays readable instead of shrinking.
+  const place = shortPlace(data);
+  return [`${data.weekday} ${data.shortDate}`, withTime && !place ? data.timeText : '', place].filter(Boolean).join(' · ');
+}
+
+/** The location, shortened past `max` characters (an emoji counts as one): first part before a comma, else cut with "…". */
+export function shortPlace(data: CardData, max = 26): string {
+  const chars = Array.from(data.location);
+  if (chars.length <= max) return data.location;
+  // "Riverside Sports Club, Bengaluru" reads better as "Riverside Sports Club" than cut mid-word.
+  const head = data.location.split(',')[0].trim();
+  if (head && Array.from(head).length <= max) return head;
+  return chars.slice(0, max - 1).join('').trimEnd() + '…';
 }

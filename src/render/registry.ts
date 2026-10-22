@@ -24,8 +24,8 @@ export const ACCENT_NAMES: Record<string, string> = {
   '#FFFFFF': 'White',
 };
 
-/** Catalogue order (the picker shows favourites first, then this order). */
-export const DESIGNS: CardDesign[] = [summary, hero, trace, zones, messages, receipt, editorial, pill, widgets, poster, dial];
+/** Catalogue order: the five strongest first. Starred favourites jump ahead of all of these. */
+export const DESIGNS: CardDesign[] = [summary, trace, pill, messages, hero, zones, receipt, editorial, widgets, poster, dial];
 
 export function designById(id: string): CardDesign {
   return DESIGNS.find((d) => d.id === id) ?? DESIGNS[0];
