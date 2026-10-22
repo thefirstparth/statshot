@@ -2238,7 +2238,8 @@ button:disabled {
 
 .sport-tile span {
   max-width: 100%;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  font-size: clamp(11px, 3.4vw, 13px);
 }
 
 :root[data-theme='dark'] .lock-overlay {
@@ -2264,7 +2265,7 @@ button:disabled {
 }
 
 .size-switch button {
-  min-height: 40px;
+  min-height: 44px;
   min-width: 56px;
   padding: 0 10px;
   border: 0;
@@ -2349,4 +2350,10 @@ button:disabled {
 .segmented button {
   font-size: clamp(12.5px, 3.7vw, 16px);
   line-height: 1.1;
+}
+
+.preview.is-transparent::after {
+  white-space: nowrap;
+  font-size: 10px;
+  padding: 1px 6px;
 }

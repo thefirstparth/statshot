@@ -133,7 +133,7 @@ export function drawFitText(
   f: FontSpec,
   color: string,
   align: CanvasTextAlign = 'left',
-  minScale = 0.6,
+  minScale = 0.5,
 ): number {
   const fitted = fitText(ctx, text, maxWidth, f, minScale);
   ctx.fillStyle = color;
