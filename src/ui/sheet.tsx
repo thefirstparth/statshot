@@ -95,6 +95,8 @@ export function Sheet({ title, onClose, children, light, class: cls }: Props) {
   };
 
   const onPointerDown = (e: PointerEvent) => {
+    // Let taps on the close button be clicks; only the handle area drags.
+    if ((e.target as HTMLElement).closest('button')) return;
     dragStart.current = { y: e.clientY, t: performance.now() };
     (e.currentTarget as HTMLElement).setPointerCapture?.(e.pointerId);
   };

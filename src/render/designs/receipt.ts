@@ -77,10 +77,9 @@ export const receipt: CardDesign = {
   blurb: 'A till receipt for your effort',
   supportsAccent: false,
   supportsGraph: true,
-  supportsTheme: false,
-
-  background() {
-    return '#2A2C31';
+  background(opts) {
+    // The paper always stays paper; Light/Dark only changes what's behind it.
+    return opts.theme === 'dark' ? '#2A2C31' : '#DCD8D2';
   },
 
   measure(_width, data, opts) {

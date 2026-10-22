@@ -47,7 +47,6 @@ export function canvasLayout(
   const cw = CARD_WIDTH * scale;
   const ch = cardH * scale;
   let y = (h - ch) / 2;
-  if (size === 'story') y = Math.max(MIN_MARGIN, y - h * 0.035); // slightly above the middle
   return { width: w, height: h, x: Math.round((w - cw) / 2), y: Math.round(y), scale, box };
 }
 

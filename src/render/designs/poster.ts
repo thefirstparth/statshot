@@ -60,7 +60,14 @@ export const poster: CardDesign = {
     let bottom = y + H - 96;
     if (rest.length) {
       setFont(ctx, { family: SANS, weight: 600, size: LINE });
-      const lines = wrapText(ctx, rest.map((s) => s.phrase).join(' · '), inner, 3);
+      // Wrap between stats, never inside one ("12 zone minutes" stays together).
+      const lines: string[] = [];
+      for (const item of rest.map((s) => s.phrase)) {
+        const last = lines[lines.length - 1];
+        if (last && ctx.measureText(`${last} · ${item}`).width <= inner) lines[lines.length - 1] = `${last} · ${item}`;
+        else lines.push(item);
+      }
+      lines.splice(3);
       for (let i = lines.length - 1; i >= 0; i--) {
         ctx.fillStyle = p.text;
         ctx.textAlign = 'left';

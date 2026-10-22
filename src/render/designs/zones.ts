@@ -66,7 +66,7 @@ export const zones: CardDesign = {
     // Proportional bar.
     const mins = z ? [z.light, z.moderate, z.vigorous, z.peak] : [1, 1, 1, 1];
     const total = mins.reduce((a, b) => a + b, 0) || 1;
-    const visible = mins.map((m, i) => ({ m, i })).filter((e) => e.m > 0);
+    const visible = mins.map((m, i) => ({ m, i })).filter((e) => Math.round(e.m) > 0 || !z);
     const gaps = (visible.length - 1) * 8;
     ctx.save();
     roundRectPath(ctx, x, y, w, BAR_H, BAR_H / 2);
