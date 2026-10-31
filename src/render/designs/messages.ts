@@ -2,7 +2,8 @@ import { ellipsize, fitText, onColor, roundRectPath, setFont, visibleStats, wrap
 import { SANS } from '../font-faces';
 import { measureContext } from '../env';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { baseline, shortPlace } from './shared';
+import { accentInk } from '../palette';
+import { baseline, showsTimeStat, shortPlace } from './shared';
 
 export const MESSAGES_BLUE = '#0A84FF';
 
@@ -76,12 +77,13 @@ export const messages: CardDesign = {
   draw(ctx: CanvasRenderingContext2D, box: Rect, data: CardData, opts: CardOptions) {
     const L = layout(ctx, data, opts);
     const right = box.x + box.w - TAIL;
-    const text = onColor(opts.accent);
+    const fill = accentInk(opts);
+    const text = onColor(fill);
 
-    ctx.fillStyle = opts.accent;
+    ctx.fillStyle = fill;
     bubble(ctx, right - L.b1.w, box.y, L.b1.w, L.b1.h, false);
     const b2y = box.y + L.b1.h + GAP;
-    ctx.fillStyle = opts.accent;
+    ctx.fillStyle = fill;
     bubble(ctx, right - L.b2.w, b2y, L.b2.w, L.b2.h, true);
 
     ctx.fillStyle = text;
@@ -98,7 +100,8 @@ export const messages: CardDesign = {
     setFont(ctx, META);
     ctx.fillStyle = opts.theme === 'dark' ? (opts.background === 'transparent' ? '#E5E5EA' : '#98989F') : '#6C6C70';
     ctx.textAlign = 'right';
-    const when = data.location ? data.shortDate : `${data.shortDate} at ${data.timeText}`;
+    // The bubble already says when when the time range is on, so the footer keeps just the date.
+    const when = data.location || showsTimeStat(data, opts) ? data.shortDate : `${data.shortDate} at ${data.timeText}`;
     const meta = [when, shortPlace(data, 22), opts.showLogo ? 'Sweatshot' : ''].filter(Boolean).join(' · ');
     ctx.fillText(ellipsize(ctx, meta, box.w - 40), right - 8, box.y + baseline(L.metaTop, META.size));
   },

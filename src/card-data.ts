@@ -8,6 +8,7 @@ import {
   formatDuration,
   formatFullDate,
   formatLongDate,
+  formatMinutes,
   formatShortDate,
   formatTime,
   hrSeries,
@@ -72,8 +73,10 @@ export function buildCardData(inp: CardInputs): CardData {
     add('minHr', { label: 'Lowest heart rate', short: 'Low HR', value: `${hr.min} bpm`, number: String(hr.min), unit: 'bpm', phrase: `lowest ${hr.min} bpm` });
   }
   if (zones) {
-    const z = String(zones.zoneMinutes);
-    add('zoneMin', { label: 'Zone minutes', short: 'Zone min', value: `${z} zone min`, number: z, unit: 'zone min', phrase: `${z} zone minutes` });
+    // Real time at moderate effort or harder: comparable with the duration, unlike Google-style
+    // zone minutes (which count vigorous minutes twice and so can't be read as time).
+    const effort = formatMinutes(zones.moderate + zones.vigorous + zones.peak);
+    add('zoneMin', { label: 'Moderate or harder', short: 'Moderate+', value: effort, number: effort, unit: '', phrase: `${effort} at moderate or harder` });
   }
   const distanceText = w.distanceM !== null ? formatDistance(w.distanceM, inp.distanceUnit) : null;
   if (distanceText) {

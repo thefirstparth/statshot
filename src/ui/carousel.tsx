@@ -2,6 +2,7 @@ import type { ComponentChildren } from 'preact';
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'preact/hooks';
 import { canvasLayout, prepareCard, releaseCanvas, renderCard } from '../render/render';
 import type { CardData, CardDesign, CardOptions, SizeKey } from '../render/types';
+import { zoneItems } from '../render/zone-graph';
 import { Icon } from './icon';
 import { reducedMotion } from './sheet';
 
@@ -12,7 +13,7 @@ function altText(design: CardDesign, data: CardData, opts: CardOptions): string 
   const stats = opts.stats.map((k) => data.stats[k]?.value).filter(Boolean).join(', ');
   const zones =
     design.needsZones && data.zones
-      ? `. Zone minutes ${data.zones.zoneMinutes}: peak ${Math.round(data.zones.peak)} min, vigorous ${Math.round(data.zones.vigorous)} min, moderate ${Math.round(data.zones.moderate)} min, light ${Math.round(data.zones.light)} min`
+      ? `. Time in zones: ${zoneItems(data, opts.theme).map((z) => `${z.name.toLowerCase()} ${z.text}`).join(', ')}`
       : '';
   return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${stats ? `. ${stats}` : ''}${zones}`;
 }

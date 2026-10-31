@@ -1,16 +1,15 @@
 import { renderEnv } from './env';
 import { luminance, roundRectPath } from './canvas';
 import { drawIconPath, loadIcons } from './icons';
-import type { CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
+import type { CanvasSize, CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
 
 export const CARD_WIDTH = 920;
 export const STICKER_PAD = 32;
 const MIN_MARGIN = 64;
 
-export const SIZES: Record<Exclude<SizeKey, 'sticker'>, { w: number; h: number }> = {
+export const SIZES: Record<Exclude<CanvasSize, 'sticker'>, { w: number; h: number }> = {
   story: { w: 1080, h: 1920 },
-  post: { w: 1080, h: 1350 },
-  square: { w: 1080, h: 1080 },
+  square: { w: 1080, h: 1080 }, // design-list thumbnails only
 };
 
 export type CanvasLayout = {
@@ -28,7 +27,7 @@ export function canvasLayout(
   design: CardDesign,
   data: CardData,
   opts: CardOptions,
-  size: SizeKey,
+  size: CanvasSize,
 ): CanvasLayout {
   const cardH = Math.ceil(design.measure(CARD_WIDTH, data, opts).h);
   const box: Rect = { x: 0, y: 0, w: CARD_WIDTH, h: cardH };
@@ -135,7 +134,7 @@ export function renderThumb(
   design: CardDesign,
   data: CardData,
   opts: CardOptions,
-  size: SizeKey,
+  size: CanvasSize,
   width: number,
   dpr = 1,
 ): void {

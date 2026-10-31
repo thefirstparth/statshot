@@ -40,7 +40,7 @@ import { DesignsSheet, EditSheet, PickWorkoutSheet, SettingsSheet, WorkoutSheet 
 import { SportSheet } from './ui/sport-sheet';
 import { SportSticker } from './ui/sticker';
 
-const SIZE_NAMES = { sticker: 'card only', story: 'story', post: 'post', square: 'square' } as const;
+const SIZE_NAMES = { sticker: 'card only', story: 'story' } as const;
 
 type SheetName = 'pick' | 'sport' | 'workout' | 'settings' | 'customize' | 'designs';
 
@@ -310,8 +310,9 @@ export function App() {
       stats,
       showLogo: prefs.showLogo,
       showGraph: prefs.showGraph && hasHr,
+      bigStat: prefs.bigStat,
     }),
-    [prefs.theme, prefs.background, prefs.accent, prefs.showLogo, prefs.showGraph, stats, hasHr],
+    [prefs.theme, prefs.background, prefs.accent, prefs.showLogo, prefs.showGraph, prefs.bigStat, stats, hasHr],
   );
 
   const zonesLocked = !!data && data.zones === null;

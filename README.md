@@ -46,25 +46,25 @@ No file yet? Tap **Try a sample workout** on the home screen.
 
 ## The designs
 
-<p align="center"><img src="docs/designs.png" alt="Eight of the eleven designs: Summary, Heart trace, Messages, Receipt, Poster, Day dial, Widgets and Zones" width="100%"></p>
+<p align="center"><img src="docs/designs.png" alt="Eight of the eleven designs: Summary, Heart trace, Hero number, Receipt, Editorial, Day dial, Widgets and Zones" width="100%"></p>
 
 | Design | What it is |
 | --- | --- |
-| **Summary** | Big title, your stats in tidy tiles, optional heart-rate line. |
-| **Hero number** | One big number. |
-| **Heart trace** | Your heart rate as one clean line, peak and average marked. |
-| **Zones** | Zone minutes and time in each heart-rate zone. |
+| **Summary** | Big title, your stats in tidy tiles, and your heart rate coloured by zone. |
+| **Hero number** | One big number, and you pick which: time, energy, average or peak heart rate. |
+| **Heart trace** | Your heart rate as one big line, coloured by zone, with the average marked. |
+| **Zones** | A donut of the time you spent in each heart-rate zone. |
 | **Messages** | Your workout as a text bubble. |
-| **Receipt** | Looks like a shop receipt. |
-| **Editorial** | Elegant, like a magazine page. |
+| **Receipt** | A shop receipt itemised by zone, with your heart rate printed as the barcode. |
+| **Editorial** | Your session as a magazine cover, with cover lines written from your numbers. |
 | **Sticker pill** | A compact pill to drop on any photo. |
-| **Widgets** | Your stats as a stack of phone widgets. |
-| **Poster** | Bold type and a giant sport glyph, made for a story. |
-| **Day dial** | When you played, on a quiet 24-hour clock. |
+| **Widgets** | Your stats as a home screen of phone widgets. |
+| **Poster** | Bold type and a giant sport glyph, with the big number of your choice. |
+| **Day dial** | When you played on a 24-hour clock, the arc coloured by how hard you worked. |
 
-Every design comes in **light or dark**, on a **solid or see-through** background, as **Card only** (the default: cropped tight to the design, best for pasting onto a story or photo) or **Story 1080×1920, Post 1080×1350 or Square 1080×1080**. Card only and Story are one tap away under the preview; the rest are in Customize. Star up to **five favourites** and they come first (starring a sixth swaps out your oldest).
+Every design comes in **light or dark**, on a **solid or see-through** background, in **Green, Blue, Purple or Mono**, and as **Card only** (the default: cropped tight to the design, best for pasting onto a story or photo) or a full **Story** (1080×1920). Card only and Story are one tap away under the preview. Star up to **five favourites** and they come first (starring a sixth swaps out your oldest).
 
-**Numbers you can show:** duration, energy, average / peak / lowest heart rate, zone minutes, distance (when the file has it, usually walks and runs) and time of day. Add where you played if you want it on the card.
+**Numbers you can show:** duration, energy, average / peak / lowest heart rate, time at moderate effort or harder, distance (when the file has it, usually walks and runs) and time of day. Add where you played if you want it on the card.
 
 ## Your data
 
@@ -95,7 +95,7 @@ Zones use the **heart-rate reserve** method, following Google's approach:
 | Vigorous | 60–84 % |
 | Peak | 85 % and up |
 
-Heart-rate reserve is *max − resting*. **Zone minutes** count moderate minutes once and vigorous and peak minutes twice. Set your **resting heart rate** (Google Health tracks it) and **age** in Settings; add your max heart rate if you know it, otherwise 220 − age is used. Exact numbers can differ slightly from Google Health, which may use its own estimate of your max.
+Heart-rate reserve is *max − resting*. Cards show **real time** in each zone (zones you never reached are left out) and your **time at moderate effort or harder**. Sweatshot doesn't print Google-style "zone minutes", which count vigorous minutes twice and so can't be compared with your workout's length. Set your **resting heart rate** (Google Health tracks it) and **age** in Settings; add your max heart rate if you know it, otherwise 220 − age is used. Exact numbers can differ slightly from Google Health, which may use its own estimate of your max.
 
 ## Which files work
 
@@ -115,7 +115,7 @@ Heart-rate reserve is *max − resting*. **Zone minutes** count moderate minutes
 
 **My numbers differ by a minute or a beat from Google Health.** Durations are rounded to the nearest minute, and averages are computed from the raw samples in the file, so tiny differences can happen.
 
-**Why does it say "Card only"?** That's the image cropped tight to the design, the easiest to paste onto an Instagram story or your own photo and resize. Tap **Story** under the preview for a full 1080×1920 image, or pick Post or Square in Customize.
+**Why does it say "Card only"?** That's the image cropped tight to the design, the easiest to paste onto an Instagram story or your own photo and resize. Tap **Story** under the preview for a full 1080×1920 image.
 
 **Can I remove the little Sweatshot mark?** Yes: Customize → **Show Sweatshot mark**.
 

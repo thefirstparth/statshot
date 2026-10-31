@@ -76,3 +76,12 @@ Choices made where the build spec was silent or needed interpreting. Grouped by 
 - **Stats order:** the order you tap stats in is the order on the card (no drag-to-reorder; tapping is more reliable on iOS Safari).
 - **Sample workout:** a generated, clearly labelled pickleball session lets people try the app without a file.
 - **Settings migration:** preferences saved under the old `statshot:prefs:v1` key are read once; retired designs fall back to Summary.
+
+## Cards v2
+
+- **Sizes:** only Card only and Story. Saved Post or Square choices fall back to Card only.
+- **Colour:** one picker for every card except Receipt: Green, Blue, Purple, Mono. It replaces the sport-category colours on cards (the sport sticker in the app keeps them). Each colour has a deeper shade for light cards. Zone colours (grey, amber, orange, red) are fixed data colours and don't follow the picker.
+- **Heart-rate line:** every graph is the same zone-coloured line. Without resting HR and age it is one line in the picked colour. The line is smoothed, so no card puts a peak dot or label on it.
+- **Effort:** the zone stat is "Moderate or harder", in real time (moderate + vigorous + peak). Google-style zone minutes aren't shown, because next to the duration they read as a second, larger time.
+- **No repeats:** a card never prints the same value twice (start or end time, date, any stat number). If the time range is a stat, headers show only the date, and graph labels are dropped when the value is already on the card. `tests/dedup.test.ts` checks every design.
+- **Big number:** Hero and Poster print the stat chosen under "Big number" (Time, Energy, Avg HR, Peak HR, Distance), with a label above it.
