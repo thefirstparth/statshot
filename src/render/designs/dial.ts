@@ -16,7 +16,7 @@ const UNIT = 30;
 const LABEL = 26;
 const STATS_H = VALUE + 14 + LABEL * 1.2;
 const LOGO = 28;
-/** Zone runs shorter than this merge into the run before (the arc is ~0.25° a minute). */
+/** Shortest stretch the arc colours on its own (the arc is ~0.25° a minute). */
 const MIN_RUN_SEC = 180;
 
 function colors(opts: CardOptions) {
@@ -51,27 +51,39 @@ const angle = (min: number) => (min / 1440) * Math.PI * 2 - Math.PI / 2;
 
 type Run = { zone: number; t0: number; t1: number };
 
-/** Stretches of the session in one zone (seconds from the start), with short blips merged away. */
+/**
+ * Stretches of the session in one zone (seconds from the start). The session is cut into short
+ * windows (≥ MIN_RUN_SEC) and each takes the zone it spent most time in, so brief blips vanish
+ * without swallowing a session that swings between zones.
+ */
 function zoneRuns(data: CardData): Run[] {
   const z = data.zones;
   const s = data.hrSeries;
   if (!z || s.length < 2) return [];
   const dur = Math.max(data.durationSec, s[s.length - 1].t);
-  const runs: Run[] = [];
+  const win = Math.max(MIN_RUN_SEC, dur / 60);
+  const n = Math.max(1, Math.round(dur / win));
+  const time = Array.from({ length: n }, () => [0, 0, 0, 0]);
   s.forEach((p, i) => {
     const t0 = i === 0 ? 0 : (s[i - 1].t + p.t) / 2;
     const t1 = i === s.length - 1 ? dur : (p.t + s[i + 1].t) / 2;
     const zone = hrrZone(p.bpm, z.restingHr, z.maxHr);
-    const last = runs[runs.length - 1];
-    if (last && last.zone === zone) last.t1 = t1;
-    else runs.push({ zone, t0, t1 });
+    // Spread this sample's time over the windows it overlaps.
+    for (let w = Math.floor((t0 / dur) * n); w < n && (w * dur) / n < t1; w++) {
+      const lo = Math.max(t0, (w * dur) / n);
+      const hi = Math.min(t1, ((w + 1) * dur) / n);
+      if (hi > lo) time[w][zone] += hi - lo;
+    }
   });
   const out: Run[] = [];
-  for (const r of runs) {
+  time.forEach((t, w) => {
+    const zone = t.indexOf(Math.max(...t));
+    const t0 = (w * dur) / n;
+    const t1 = ((w + 1) * dur) / n;
     const last = out[out.length - 1];
-    if (last && (r.t1 - r.t0 < MIN_RUN_SEC || last.zone === r.zone)) last.t1 = r.t1;
-    else out.push({ ...r });
-  }
+    if (last && last.zone === zone) last.t1 = t1;
+    else out.push({ zone, t0, t1 });
+  });
   return out;
 }
 
