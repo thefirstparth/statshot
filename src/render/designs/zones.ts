@@ -1,105 +1,163 @@
-import { BRAND, drawFitText, fillRoundRect, fitText, roundRectPath } from '../canvas';
-import { DISPLAY, SANS } from '../font-faces';
-import { formatDuration, hrrZoneStarts, ZONE_COLORS, ZONE_NAMES } from '../../tcx/stats';
+import { drawFitText, drawLogo, fillRoundRect, fitText, rgba, setFont } from '../canvas';
+import { SANS } from '../font-faces';
+import { drawIconPath } from '../icons';
+import { ZONE_NAMES } from '../palette';
+import { formatMinutes, hrrZoneStarts } from '../../tcx/stats';
+import { effortMinutes, zoneItems, type ZoneItem } from '../zone-graph';
 import type { CardData, CardDesign, CardOptions, Rect } from '../types';
-import { baseline, drawSportBadge, metaLine } from './shared';
+import { baseline, drawSportBadge, shortPlace } from './shared';
 
-const PAD = 64;
-const BADGE = 120;
-const BIG = 220;
-const BAR_H = 84;
-const ROW_H = 84;
+const PAD = 60;
+const BADGE = 96;
+const TITLE = 60;
+const SUB = 30;
+const DONUT = 540; // outer diameter
+const RING = 68;
+const ROW_H = 88;
+const NOTE = 28;
+const LOGO = 24;
 
 const colors = (opts: CardOptions) =>
   opts.theme === 'dark'
-    ? { canvas: '#0F1012', card: '#1C1D20', ink: '#F1F2F4', muted: '#A7ABB1', line: '#2E3034', empty: '#3A3C40' }
-    : { canvas: '#F6F7F9', card: '#FFFFFF', ink: '#1A1C1E', muted: '#5B6066', line: '#ECEEF1', empty: '#E3E5E8' };
+    ? { canvas: '#0F1012', card: '#1C1D20', ink: '#F1F2F4', muted: '#A7ABB1', line: 'rgba(255,255,255,0.08)', empty: '#2E3034' }
+    : { canvas: '#F6F7F9', card: '#FFFFFF', ink: '#1A1C1E', muted: '#5B6066', line: 'rgba(0,0,0,0.07)', empty: '#E6E8EB' };
 
-const H = PAD + BADGE + 44 + BIG * 0.85 + 44 + BAR_H + 44 + ROW_H * 4 + 40 + 34 + PAD;
+type Row = { name: string; range: string; pct: string; time: string; color: string | null };
 
-function ranges(data: CardData): string[] {
-  if (!data.zones) return ['', '', '', ''];
-  const [m, v, p] = hrrZoneStarts(data.zones.restingHr, data.zones.maxHr);
-  return [`under ${m}`, `${m}–${v - 1}`, `${v}–${p - 1}`, `${p}+ bpm`];
+/** Legend rows, hardest zone first. Zero-minute zones are left out; the top zone shown has no ceiling. */
+function rows(data: CardData, opts: CardOptions): Row[] {
+  const z = data.zones;
+  if (!z) return [...ZONE_NAMES].reverse().map((name) => ({ name, range: '', pct: '', time: '–', color: null }));
+  const items = zoneItems(data, opts.theme);
+  const total = items.reduce((s, it) => s + it.minutes, 0) || 1;
+  const starts = hrrZoneStarts(z.restingHr, z.maxHr);
+  const top = items[items.length - 1];
+  return items
+    .map((it) => ({
+      name: it.name,
+      range: it === top && it.index > 0 ? `${starts[it.index - 1]}+ bpm` : it.range,
+      pct: `${Math.round((it.minutes / total) * 100)}%`,
+      time: it.text,
+      color: it.color,
+    }))
+    .reverse();
+}
+
+function layout(data: CardData, opts: CardOptions) {
+  const donutTop = PAD + BADGE + 60;
+  const rowsTop = donutTop + DONUT + 44;
+  let end = rowsTop + rows(data, opts).length * ROW_H;
+  const noteTop = end + 28;
+  if (!data.zones) end = noteTop + NOTE * 1.2;
+  const logoTop = end + 32;
+  if (opts.showLogo) end = logoTop + LOGO * 1.2;
+  return { donutTop, rowsTop, noteTop, logoTop, h: end + PAD - 8 };
+}
+
+/** "Sat 31 Oct · 1:11 AM–4:04 AM", plus the place when it fits without shrinking. */
+function headerLine(ctx: CanvasRenderingContext2D, data: CardData, maxW: number): string {
+  const base = `${data.weekday} ${data.shortDate} · ${data.timeText}–${data.endTimeText}`;
+  const place = shortPlace(data);
+  if (!place) return base;
+  const withPlace = `${base} · ${place}`;
+  setFont(ctx, { family: SANS, weight: 400, size: SUB });
+  return ctx.measureText(withPlace).width <= maxW ? withPlace : base;
+}
+
+function drawDonut(ctx: CanvasRenderingContext2D, items: ZoneItem[], cx: number, cy: number, empty: string): void {
+  const r = DONUT / 2 - RING / 2;
+  ctx.lineWidth = RING;
+  ctx.lineCap = 'butt';
+  if (items.length === 0) {
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.strokeStyle = empty;
+    ctx.stroke();
+    return;
+  }
+  const total = items.reduce((s, it) => s + it.minutes, 0) || 1;
+  // A small gap between segments (none when there's only one).
+  const gap = items.length > 1 ? 0.035 : 0;
+  let a = -Math.PI / 2;
+  for (const it of items) {
+    const span = (it.minutes / total) * Math.PI * 2;
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, a + gap / 2, a + Math.max(span - gap / 2, gap / 2 + 0.001));
+    ctx.strokeStyle = it.color;
+    ctx.stroke();
+    a += span;
+  }
 }
 
 export const zones: CardDesign = {
   id: 'zones',
   name: 'Zones',
-  blurb: 'Minutes in each heart-rate zone',
+  blurb: 'Time in each heart-rate zone',
   needsHr: true,
   needsZones: true,
-  supportsAccent: false,
+  supportsAccent: true,
 
   background(opts) {
     return colors(opts).canvas;
   },
 
-  measure() {
-    return { h: H };
+  measure(_w, data, opts) {
+    return { h: layout(data, opts).h };
   },
 
   draw(ctx: CanvasRenderingContext2D, box: Rect, data: CardData, opts: CardOptions) {
     const c = colors(opts);
-    const z = data.zones;
+    const L = layout(data, opts);
     const x = box.x + PAD;
     const w = box.w - PAD * 2;
-    fillRoundRect(ctx, box.x, box.y, box.w, H, 64, c.card);
+    fillRoundRect(ctx, box.x, box.y, box.w, L.h, 56, c.card);
 
-    drawSportBadge(ctx, data, x, box.y + PAD, BADGE, opts.theme === 'dark');
+    // Header: badge, title, date · time range.
+    drawSportBadge(ctx, data, x, box.y + PAD, BADGE, opts);
     const tx = x + BADGE + 28;
     const tw = w - BADGE - 28;
-    const ts = fitText(ctx, data.title, tw, { family: SANS, weight: 700, size: 64 }, 0.6).size;
-    const top = box.y + PAD + (BADGE - (ts * 1.05 + 8 + 34 * 1.2)) / 2;
-    drawFitText(ctx, data.title, tx, baseline(top, ts), tw, { family: SANS, weight: 700, size: 64 }, c.ink, 'left', 0.6);
-    drawFitText(ctx, metaLine(data), tx, baseline(top + ts * 1.05 + 8, 34), tw, { family: SANS, weight: 400, size: 34 }, c.muted);
+    const ts = fitText(ctx, data.title, tw, { family: SANS, weight: 700, size: TITLE }, 0.6).size;
+    const top = box.y + PAD + (BADGE - (ts * 1.05 + 8 + SUB * 1.2)) / 2;
+    drawFitText(ctx, data.title, tx, baseline(top, ts), tw, { family: SANS, weight: 700, size: TITLE }, c.ink, 'left', 0.6);
+    drawFitText(ctx, headerLine(ctx, data, tw), tx, baseline(top + ts * 1.05 + 8, SUB), tw, { family: SANS, weight: 400, size: SUB }, c.muted, 'left', 0.7);
 
-    // Headline: zone minutes.
-    let y = box.y + PAD + BADGE + 44;
-    const big = z ? String(z.zoneMinutes) : '–';
-    const numW = drawFitText(ctx, big, x - 4, y + BIG * 0.8, w * 0.55, { family: DISPLAY, weight: 800, size: BIG }, c.ink, 'left', 0.5);
-    const lx = x + numW + 28;
-    drawFitText(ctx, 'zone minutes', lx, y + BIG * 0.8 - 52, w - (lx - x), { family: SANS, weight: 700, size: 44 }, c.ink);
-    drawFitText(ctx, `Moderate or harder, of ${formatDuration(data.durationSec)}`, lx, y + BIG * 0.8, w - (lx - x), { family: SANS, weight: 400, size: 30 }, c.muted);
-    y += BIG * 0.85 + 44;
-
-    // Proportional bar.
-    const mins = z ? [z.light, z.moderate, z.vigorous, z.peak] : [1, 1, 1, 1];
-    const total = mins.reduce((a, b) => a + b, 0) || 1;
-    const visible = mins.map((m, i) => ({ m, i })).filter((e) => Math.round(e.m) > 0 || !z);
-    const gaps = (visible.length - 1) * 8;
-    ctx.save();
-    roundRectPath(ctx, x, y, w, BAR_H, BAR_H / 2);
-    ctx.clip();
-    let bx = x;
-    for (const { m, i } of visible) {
-      const bw = ((w - gaps) * m) / total;
-      ctx.fillStyle = z ? ZONE_COLORS[i] : c.empty;
-      ctx.fillRect(bx, y, bw, BAR_H);
-      bx += bw + 8;
+    // Donut: one segment per zone reached; real time at moderate or harder in the middle.
+    const items = zoneItems(data, opts.theme);
+    const cx = box.x + box.w / 2;
+    const cy = box.y + L.donutTop + DONUT / 2;
+    drawDonut(ctx, items, cx, cy, c.empty);
+    const inner = DONUT - RING * 2 - 48;
+    const effort = effortMinutes(data);
+    if (effort !== null) {
+      drawFitText(ctx, data.stats.zoneMin?.value ?? formatMinutes(effort), cx, cy + 16, inner, { family: SANS, weight: 800, size: 104 }, c.ink, 'center', 0.6);
+      drawFitText(ctx, 'moderate or harder', cx, cy + 66, inner, { family: SANS, weight: 500, size: 28 }, rgba(c.ink, 0.6), 'center', 0.7);
+      drawFitText(ctx, `of ${data.stats.duration?.value ?? ''}`, cx, cy + 104, inner, { family: SANS, weight: 500, size: 28 }, rgba(c.ink, 0.6), 'center', 0.7);
+    } else {
+      const lock = 72;
+      drawIconPath(ctx, 'lock-fill', c.muted, cx - lock / 2, cy - lock - 4, lock);
+      drawFitText(ctx, 'Zones not set up', cx, cy + 48, inner, { family: SANS, weight: 600, size: 32 }, c.muted, 'center', 0.7);
     }
-    ctx.restore();
-    y += BAR_H + 44;
 
-    // Zone rows.
-    const r = ranges(data);
-    for (let i = 3; i >= 0; i--) {
-      const row = 3 - i;
-      const ry = y + row * ROW_H;
-      fillRoundRect(ctx, x, ry + ROW_H / 2 - 16, 32, 32, 10, z ? ZONE_COLORS[i] : c.empty);
-      drawFitText(ctx, ZONE_NAMES[i], x + 56, ry + ROW_H / 2 + 14, 300, { family: SANS, weight: 600, size: 40 }, c.ink);
-      drawFitText(ctx, r[i], x + w - 170, ry + ROW_H / 2 + 11, 300, { family: SANS, weight: 400, size: 30 }, c.muted, 'right');
-      drawFitText(ctx, z ? `${Math.round(mins[i])}m` : '–', x + w, ry + ROW_H / 2 + 15, 150, { family: SANS, weight: 800, size: 44 }, c.ink, 'right');
-      if (row < 3) {
-        ctx.fillStyle = c.line;
-        ctx.fillRect(x, ry + ROW_H - 1, w, 2);
-      }
+    // Legend rows: zone, bpm range, share, time.
+    const TIME_W = 152;
+    const PCT_W = 110;
+    rows(data, opts).forEach((r, i) => {
+      const ry = box.y + L.rowsTop + i * ROW_H;
+      ctx.fillStyle = c.line;
+      ctx.fillRect(x, ry, w, 2);
+      const mid = ry + ROW_H / 2;
+      fillRoundRect(ctx, x, mid - 12, 24, 24, 8, r.color ?? c.empty);
+      const nameX = x + 24 + 22;
+      const nameMax = w - (nameX - x) - TIME_W - PCT_W - 24;
+      const nw = drawFitText(ctx, r.name, nameX, mid + 13, nameMax, { family: SANS, weight: 600, size: 36 }, c.ink, 'left', 0.7);
+      if (r.range) drawFitText(ctx, r.range, nameX + nw + 16, mid + 12, nameMax - nw - 16, { family: SANS, weight: 400, size: 26 }, rgba(c.ink, 0.5), 'left', 0.8);
+      if (r.pct) drawFitText(ctx, r.pct, x + w - TIME_W - 16, mid + 11, PCT_W, { family: SANS, weight: 400, size: 30 }, rgba(c.ink, 0.55), 'right');
+      drawFitText(ctx, r.time, x + w, mid + 14, TIME_W, { family: SANS, weight: 700, size: 40 }, c.ink, 'right', 0.7);
+    });
+
+    if (!data.zones) {
+      drawFitText(ctx, 'Add resting heart rate and age in Settings', x, baseline(box.y + L.noteTop, NOTE), w, { family: SANS, weight: 400, size: NOTE }, c.muted, 'left', 0.7);
     }
-    y += ROW_H * 4 + 40;
-
-    const note = z
-      ? `Resting heart rate ${z.restingHr} bpm${opts.showLogo ? ` · ${BRAND}` : ''}`
-      : 'Add resting heart rate and age in Settings';
-    drawFitText(ctx, note, x, baseline(y, 28), w, { family: SANS, weight: 400, size: 28 }, c.muted);
+    if (opts.showLogo) drawLogo(ctx, x, box.y + L.logoTop + LOGO * 0.6, LOGO, rgba(c.ink, 0.35));
   },
 };
