@@ -2243,6 +2243,8 @@ button:disabled {
 .sport-tile span {
   max-width: 100%;
   overflow-wrap: break-word;
+  /* With large text, long names break with a hyphen ("Badmin-ton") rather than mid-word. */
+  hyphens: auto;
   font-size: clamp(11px, 3.4vw, 13px);
 }
 
@@ -2278,6 +2280,7 @@ button:disabled {
   color: var(--muted);
   font-weight: 750;
   font-size: 14px;
+  white-space: nowrap;
 }
 
 .size-switch button.is-on {

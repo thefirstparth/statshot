@@ -161,10 +161,11 @@ function drawTracked(ctx: Ctx, text: string, x: number, y: number, maxW: number,
   ctx.textBaseline = 'alphabetic';
   // One string (so text recorders see the whole label), tracked where the canvas supports it.
   const tc = ctx as Ctx & { letterSpacing?: string };
-  const prev = tc.letterSpacing;
-  if (prev !== undefined) tc.letterSpacing = `${LABEL_TRACK}px`;
+  const spaced = 'letterSpacing' in tc;
+  if (spaced) tc.letterSpacing = `${LABEL_TRACK}px`;
   ctx.fillText(text, x, y);
-  if (prev !== undefined) tc.letterSpacing = prev;
+  // Back to no tracking explicitly (restoring a read-back '' is ignored by Chrome).
+  if (spaced) tc.letterSpacing = '0px';
 }
 
 /** Secondary value: number plus a small muted unit (durations print as they are). */
@@ -277,7 +278,10 @@ export const hero: CardDesign = {
         const ry = top + L.secTop + r * (L.rowH + SEC_ROW_GAP);
         row.forEach((item, i) => {
           const cx = x + i * colW;
-          drawFitText(ctx, item.label, cx, baseline(ry, SEC_LABEL), maxW, FONT_SEC_LABEL, c.muted, 'left', 0.75);
+          // The short label ("Moderate+") when the full one would need shrinking or cutting.
+          setFont(ctx, FONT_SEC_LABEL);
+          const label = ctx.measureText(item.label).width <= maxW ? item.label : item.short;
+          drawFitText(ctx, label, cx, baseline(ry, SEC_LABEL), maxW, FONT_SEC_LABEL, c.muted, 'left', 0.75);
           drawSec(ctx, item, cx, ry + SEC_LABEL * 1.2 + SEC_GAP + SEC_VALUE * 0.78, size, c.ink, c.muted);
         });
       });

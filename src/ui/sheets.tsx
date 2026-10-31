@@ -334,6 +334,7 @@ export function EditSheet({
         ]}
         onChange={(theme) => onChange({ theme })}
       />
+      {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
       <Segmented
         label="Background"
         note="See-through means no background, to put on your own photo"
@@ -382,8 +383,6 @@ export function EditSheet({
         )}
         <Toggle label="Show Sweatshot mark" checked={prefs.showLogo} onChange={(showLogo) => onChange({ showLogo })} />
       </div>
-
-      {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
 
       <button type="button" class="row-btn" onClick={onOpenDesigns} data-autofocus={focusDesigns ? true : undefined}>
         <Icon name="grid_view" />

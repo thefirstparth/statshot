@@ -218,7 +218,7 @@ const LOGO = 26;
 const BAND_MIN = 260;
 const BAND_MAX = 420;
 const MIN_H = 1560;
-const MIN_H_NOHR = 1080;
+const MIN_H_NOHR = 760; // without the heart-rate art the cover is shorter, not emptier
 
 /** Mid-tone covers for the picked colour; Mono is light grey or graphite by theme. */
 const MID: Record<string, string> = { Green: '#34C584', Blue: '#4C8DFF', Purple: '#9B7BFF' };
@@ -240,7 +240,6 @@ function caps(ctx: Ctx, text: string, x: number, y: number, maxW: number, color:
   const c = ctx as Spaced;
   setFont(ctx, { family: SANS, weight: 600, size });
   const spaced = 'letterSpacing' in c;
-  const prev = c.letterSpacing;
   if (spaced) c.letterSpacing = `${(size * TRACK).toFixed(2)}px`;
   const t = ellipsize(ctx, text.toUpperCase(), maxW);
   const w = ctx.measureText(t).width;
@@ -250,7 +249,9 @@ function caps(ctx: Ctx, text: string, x: number, y: number, maxW: number, color:
     ctx.textBaseline = 'alphabetic';
     ctx.fillText(t, align === 'right' ? x - w : x, y);
   }
-  if (spaced) c.letterSpacing = prev ?? '0px';
+  // Always back to no tracking: Chrome can report '' here, and assigning '' is ignored, which
+  // would leak the tracking into every later line.
+  if (spaced) c.letterSpacing = '0px';
   return w;
 }
 

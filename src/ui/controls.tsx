@@ -111,12 +111,32 @@ export function Swatches({
       <div class="field-label" id="accent-label">
         Colour{current ? ` · ${current.name}` : ''}
       </div>
-      <div class="swatches" role="radiogroup" aria-labelledby="accent-label">
-        {colors.map((c) => (
+      <div
+        class="swatches"
+        role="radiogroup"
+        aria-labelledby="accent-label"
+        onKeyDown={(e) => {
+          // Same keys as the other pickers: arrows move and choose, Home/End jump to the ends.
+          const i = current ? colors.indexOf(current) : 0;
+          const target =
+            e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % colors.length
+            : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + colors.length) % colors.length
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? colors.length - 1
+            : -1;
+          if (target < 0) return;
+          e.preventDefault();
+          onChange(colors[target].key);
+          const group = e.currentTarget as HTMLElement;
+          requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+        }}
+      >
+        {colors.map((c, i) => (
           <button
             key={c.key}
             type="button"
             role="radio"
+            tabIndex={c === current || (!current && i === 0) ? 0 : -1}
             aria-checked={c === current}
             aria-label={c.name}
             class={`swatch${c === current ? ' is-on' : ''}${c.name === 'Mono' ? ' is-mono' : ''}`}
