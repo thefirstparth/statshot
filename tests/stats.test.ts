@@ -224,7 +224,7 @@ describe('card data', () => {
   it('builds the Messages sentence', () => {
     const opts = { stats: ['duration', 'energy', 'avgHr'] } as CardOptions;
     // Units are glued to their numbers with no-break spaces so a line never splits "496 / kcal".
-    expect(statSentence(data, visibleStats(data, opts)).replace(/\u00A0/g, ' ')).toBe('1h 51m of table tennis, 496 kcal, avg 112 bpm');
+    expect(statSentence(data, visibleStats(data, opts)).replace(/\u00A0/g, ' ')).toBe('1h 51m, 496 kcal, avg 112 bpm'); // the title bubble already says Table tennis
     expect(statSentence(data, visibleStats(data, opts))).toContain('496\u00A0kcal');
   });
 
@@ -280,6 +280,19 @@ describe('preferences', () => {
     expect(loadPrefs().favourites).toEqual(['receipt', 'dial']);
   });
 
+  it('moves retired sizes and colours back to defaults and keeps a valid big number', () => {
+    localStorage.setItem('sweatshot:prefs:v1', JSON.stringify({ size: 'post', accent: '#FF6B35', bigStat: 'energy' }));
+    const p = loadPrefs();
+    expect(p.size).toBe('sticker');
+    expect(p.accent).toBeNull();
+    expect(p.bigStat).toBe('energy');
+    localStorage.setItem('sweatshot:prefs:v1', JSON.stringify({ size: 'story', accent: '#9B7BFF', bigStat: 'timeRange' }));
+    const q = loadPrefs();
+    expect(q.size).toBe('story');
+    expect(q.accent).toBe('#9B7BFF');
+    expect(q.bigStat).toBe('duration');
+  });
+
   it('keeps the last 6 recent sports, newest first', () => {
     let r: string[] = [];
     for (const id of ['a', 'b', 'c', 'd', 'e', 'f', 'b', 'g']) r = pushRecent(r, id);
@@ -309,5 +322,18 @@ describe('location on cards', () => {
     const cut = shortPlace(at('The Very Long Community Recreation Centre'));
     expect(Array.from(cut)).toHaveLength(26);
     expect(cut.endsWith('…')).toBe(true);
+  });
+});
+
+describe('effort stat', () => {
+  it('shows real time at moderate or harder, never double-counted zone minutes', () => {
+    const r = parseTcx(fixture('synthetic-basic.tcx'));
+    if (!r.ok) throw new Error(r.error);
+    const data = buildCardData({ workout: r.workouts[0], sport: sportById('table-tennis'), title: '', location: '', hour12: false, distanceUnit: 'km', age: 30, restingHr: 62, maxHrOverride: null });
+    const z = data.zones!;
+    const s = data.stats.zoneMin!;
+    expect(s.label).toBe('Moderate or harder');
+    expect(s.value).toBe(formatMinutes(z.moderate + z.vigorous + z.peak));
+    expect(s.value).not.toContain('zone');
   });
 });

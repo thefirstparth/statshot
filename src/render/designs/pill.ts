@@ -1,10 +1,11 @@
-import { drawLogo, fitText, measureLogo, mix, roundRectPath, setFont, splitRows, visibleStats, type FontSpec } from '../canvas';
+import { drawLogo, fitText, measureLogo, roundRectPath, setFont, splitRows, visibleStats, type FontSpec } from '../canvas';
 import { SANS } from '../font-faces';
 import { measureContext } from '../env';
 import { drawIconPath } from '../icons';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem, StatKey } from '../types';
 import { CATEGORY_SHAPES, sportById } from '../../sports';
-import { shortPlace } from './shared';
+import { accentInk, accentTones } from '../palette';
+import { showsTimeStat, shortPlace } from './shared';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -96,16 +97,10 @@ const THEMES = {
   dark: { bg: '#0F1012', surface: '#1C1D20', ink: '#F1F2F4', muted: '#A7ABB1' },
 };
 
-function palette(data: CardData, opts: CardOptions) {
+function palette(_data: CardData, opts: CardOptions) {
   const th = THEMES[opts.theme];
-  const c = data.sportColors;
-  const dark = opts.theme === 'dark';
-  return {
-    ...th,
-    stickerBg: dark ? mix(c.strong, '#000000', 0.62) : c.bg,
-    stickerFg: dark ? mix(c.bg, '#FFFFFF', 0.25) : c.fg,
-    icon: dark ? mix(c.strong, '#FFFFFF', 0.4) : c.strong,
-  };
+  const t = accentTones(opts);
+  return { ...th, stickerBg: t.bg, stickerFg: t.fg, icon: accentInk(opts) };
 }
 
 /** Short unit words so the three heart-rate chips stay distinguishable. */
@@ -138,7 +133,8 @@ function layout(ctx: Ctx, width: number, data: CardData, opts: CardOptions) {
   const textMax = width - MAIN_PAD_L - STICKER - MAIN_GAP - MAIN_PAD_R;
   const heading = fitText(ctx, data.title, textMax, HEADING, 0.7);
   const headingW = ctx.measureText(heading.text).width;
-  const lineText = [`${data.weekday} ${data.shortDate}`, shortPlace(data, 22) || data.timeText].join(' · ');
+  // The start time is left out when the time-range chip already shows it.
+  const lineText = [`${data.weekday} ${data.shortDate}`, shortPlace(data, 22) || (showsTimeStat(data, opts) ? '' : data.timeText)].filter(Boolean).join(' · ');
   const line = fitText(ctx, lineText, textMax, LINE, 0.85);
   const lineW = ctx.measureText(line.text).width;
   const mainW = Math.ceil(MAIN_PAD_L + STICKER + MAIN_GAP + Math.max(headingW, lineW) + MAIN_PAD_R);
@@ -171,7 +167,7 @@ export const pill: CardDesign = {
   id: 'pill',
   name: 'Sticker pill',
   blurb: 'A compact pill you can drop on any photo',
-  supportsAccent: false,
+  supportsAccent: true,
 
   background(opts) {
     return THEMES[opts.theme].bg;

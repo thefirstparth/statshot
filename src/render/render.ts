@@ -1,16 +1,15 @@
 import { renderEnv } from './env';
 import { luminance, roundRectPath } from './canvas';
 import { drawIconPath, loadIcons } from './icons';
-import type { CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
+import type { CanvasSize, CardData, CardDesign, CardOptions, Rect, SizeKey } from './types';
 
 export const CARD_WIDTH = 920;
 export const STICKER_PAD = 32;
 const MIN_MARGIN = 64;
 
-export const SIZES: Record<Exclude<SizeKey, 'sticker'>, { w: number; h: number }> = {
+export const SIZES: Record<Exclude<CanvasSize, 'sticker'>, { w: number; h: number }> = {
   story: { w: 1080, h: 1920 },
-  post: { w: 1080, h: 1350 },
-  square: { w: 1080, h: 1080 },
+  square: { w: 1080, h: 1080 }, // design-list thumbnails only
 };
 
 export type CanvasLayout = {
@@ -28,7 +27,7 @@ export function canvasLayout(
   design: CardDesign,
   data: CardData,
   opts: CardOptions,
-  size: SizeKey,
+  size: CanvasSize,
 ): CanvasLayout {
   const cardH = Math.ceil(design.measure(CARD_WIDTH, data, opts).h);
   const box: Rect = { x: 0, y: 0, w: CARD_WIDTH, h: cardH };
@@ -93,6 +92,12 @@ function drawStoryBackdrop(
   drawIconPath(ctx, data.sportIcon, glyph, -s * 0.38, -s * 0.3, s * 0.75);
 }
 
+/** Canvases are reused between designs: never start a card with leftover letter spacing. */
+function resetTracking(ctx: CanvasRenderingContext2D): void {
+  const c = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
+  if ('letterSpacing' in c) c.letterSpacing = '0px';
+}
+
 /** Decode everything a card needs before drawing it (fonts are loaded once at app start). */
 export function prepareCard(design: CardDesign, data: CardData, opts: CardOptions): Promise<void> {
   return loadIcons(design.icons?.(data, opts) ?? []);
@@ -114,6 +119,7 @@ export function renderCard(
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.globalAlpha = 1;
   ctx.globalCompositeOperation = 'source-over';
+  resetTracking(ctx);
   ctx.clearRect(0, 0, layout.width, layout.height);
   if (opts.background === 'solid') {
     ctx.fillStyle = design.background(opts);
@@ -135,7 +141,7 @@ export function renderThumb(
   design: CardDesign,
   data: CardData,
   opts: CardOptions,
-  size: SizeKey,
+  size: CanvasSize,
   width: number,
   dpr = 1,
 ): void {
@@ -146,6 +152,7 @@ export function renderThumb(
   const ctx = canvas.getContext('2d');
   if (!ctx) return;
   ctx.setTransform(k, 0, 0, k, 0, 0);
+  resetTracking(ctx);
   ctx.clearRect(0, 0, layout.width, layout.height);
   if (opts.background === 'solid') {
     ctx.fillStyle = design.background(opts);

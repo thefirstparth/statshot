@@ -1,4 +1,4 @@
-import { ACCENT_NAMES } from '../render/registry';
+import type { Accent } from '../render/palette';
 import type { ComponentChildren } from 'preact';
 import { useEffect, useState } from 'preact/hooks';
 
@@ -102,25 +102,46 @@ export function Swatches({
   onChange,
 }: {
   value: string;
-  colors: string[];
+  colors: Accent[];
   onChange: (c: string) => void;
 }) {
+  const current = colors.find((c) => c.key.toLowerCase() === value.toLowerCase());
   return (
     <div class="field">
       <div class="field-label" id="accent-label">
-        Accent
+        Colour{current ? ` · ${current.name}` : ''}
       </div>
-      <div class="swatches" role="radiogroup" aria-labelledby="accent-label">
-        {colors.map((c) => (
+      <div
+        class="swatches"
+        role="radiogroup"
+        aria-labelledby="accent-label"
+        onKeyDown={(e) => {
+          // Same keys as the other pickers: arrows move and choose, Home/End jump to the ends.
+          const i = current ? colors.indexOf(current) : 0;
+          const target =
+            e.key === 'ArrowRight' || e.key === 'ArrowDown' ? (i + 1) % colors.length
+            : e.key === 'ArrowLeft' || e.key === 'ArrowUp' ? (i - 1 + colors.length) % colors.length
+            : e.key === 'Home' ? 0
+            : e.key === 'End' ? colors.length - 1
+            : -1;
+          if (target < 0) return;
+          e.preventDefault();
+          onChange(colors[target].key);
+          const group = e.currentTarget as HTMLElement;
+          requestAnimationFrame(() => group.querySelector<HTMLElement>('[aria-checked="true"]')?.focus());
+        }}
+      >
+        {colors.map((c, i) => (
           <button
-            key={c}
+            key={c.key}
             type="button"
             role="radio"
-            aria-checked={c.toLowerCase() === value.toLowerCase()}
-            aria-label={ACCENT_NAMES[c.toUpperCase()] ?? c}
-            class={`swatch${c.toLowerCase() === value.toLowerCase() ? ' is-on' : ''}`}
-            style={{ '--swatch': c }}
-            onClick={() => onChange(c)}
+            tabIndex={c === current || (!current && i === 0) ? 0 : -1}
+            aria-checked={c === current}
+            aria-label={c.name}
+            class={`swatch${c === current ? ' is-on' : ''}${c.name === 'Mono' ? ' is-mono' : ''}`}
+            style={{ '--swatch': c.dark }}
+            onClick={() => onChange(c.key)}
           />
         ))}
       </div>

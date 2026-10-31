@@ -1,6 +1,7 @@
-import { drawFitText, mix, rgba, setFont, visibleStats, type FontSpec } from '../canvas';
+import { drawFitText, rgba, setFont, visibleStats, type FontSpec } from '../canvas';
 import { drawIconPath } from '../icons';
-import type { CardData, CardDesign, StatItem, StatKey } from '../types';
+import { accentTones } from '../palette';
+import type { CardData, CardDesign, CardOptions, StatItem, StatKey } from '../types';
 
 type Ctx = CanvasRenderingContext2D;
 
@@ -136,14 +137,29 @@ export function cookiePath(ctx: CanvasRenderingContext2D, cx: number, cy: number
   ctx.closePath();
 }
 
-/** The sport glyph on a cookie sticker in its category colours. */
-export function drawSportBadge(ctx: CanvasRenderingContext2D, data: CardData, x: number, y: number, size: number, dark = false): void {
-  const c = data.sportColors;
+/** The sport glyph on a cookie sticker in the picked colour. */
+export function drawSportBadge(ctx: CanvasRenderingContext2D, data: CardData, x: number, y: number, size: number, opts: CardOptions): void {
+  const c = accentTones(opts);
   cookiePath(ctx, x + size / 2, y + size / 2, size / 2);
-  ctx.fillStyle = dark ? mix(c.fg, '#000000', 0.35) : c.bg;
+  ctx.fillStyle = c.bg;
   ctx.fill();
   const g = size * 0.52;
-  drawIconPath(ctx, data.sportIcon, dark ? c.bg : c.fg, x + (size - g) / 2, y + (size - g) / 2, g);
+  drawIconPath(ctx, data.sportIcon, c.fg, x + (size - g) / 2, y + (size - g) / 2, g);
+}
+
+/** True when the card shows the start–end time as a stat, so headers should show only the date. */
+export function showsTimeStat(data: CardData, opts: CardOptions): boolean {
+  return visibleStats(data, opts).some((s) => s.key === 'timeRange');
+}
+
+/** True when `key` is one of the stats shown on the card (graph labels skip those values). */
+export function showsStat(data: CardData, opts: CardOptions, key: StatKey): boolean {
+  return visibleStats(data, opts).some((s) => s.key === key);
+}
+
+/** metaLine that leaves the time out when the time range is already a stat on the card. */
+export function cardMeta(data: CardData, opts: CardOptions): string {
+  return metaLine(data, !showsTimeStat(data, opts));
 }
 
 /** "Tue 20 Oct · 02:02 · Smash Club" */

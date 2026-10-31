@@ -1,3 +1,4 @@
+import { accentByKey } from '../render/palette';
 import { DESIGNS } from '../render/registry';
 import { MAX_STATS, STAT_ORDER, type Background, type SizeKey, type StatKey, type Theme } from '../render/types';
 import type { DistanceUnit } from '../tcx/stats';
@@ -11,7 +12,8 @@ export type Prefs = {
   background: Background;
   theme: Theme; // card theme
   size: SizeKey;
-  accent: string | null; // null → the design's own default
+  accent: string | null; // palette key; null → the design's own default
+  bigStat: StatKey; // Hero and Poster's big number
   stats: StatKey[];
   showGraph: boolean;
   showLogo: boolean;
@@ -25,6 +27,8 @@ export type Prefs = {
 };
 
 export const MAX_FAVOURITES = 5;
+/** Stats Hero and Poster can print as the big number. */
+export const BIG_STATS: StatKey[] = ['duration', 'energy', 'avgHr', 'maxHr', 'distance'];
 export const MAX_RECENT_SPORTS = 6;
 
 /** Nothing is starred until you star it; the catalogue order already puts the strongest first. */
@@ -40,6 +44,7 @@ export const DEFAULT_PREFS: Prefs = {
   theme: 'dark',
   size: 'sticker',
   accent: null,
+  bigStat: 'duration',
   stats: ['duration', 'distance', 'energy', 'avgHr'], // distance shows only when the file has it
   showGraph: true,
   showLogo: true,
@@ -54,7 +59,7 @@ export const DEFAULT_PREFS: Prefs = {
 
 const KEY = 'sweatshot:prefs:v1';
 const LEGACY_KEY = 'statshot:prefs:v1';
-const SIZES: SizeKey[] = ['story', 'post', 'square', 'sticker'];
+const SIZES: SizeKey[] = ['story', 'sticker']; // retired Post/Square fall back to Card only
 
 const isHex = (v: unknown): v is string => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v);
 const isNum = (v: unknown, min: number, max: number): v is number =>
@@ -83,7 +88,9 @@ export function loadPrefs(): Prefs {
   if (raw.background === 'transparent' || raw.background === 'solid') p.background = raw.background;
   if (raw.theme === 'light' || raw.theme === 'dark') p.theme = raw.theme;
   if (SIZES.includes(raw.size as SizeKey)) p.size = raw.size as SizeKey;
-  if (raw.accent === null || isHex(raw.accent)) p.accent = raw.accent;
+  // Only colours still on offer; anything retired goes back to the design's default.
+  if (raw.accent === null || (isHex(raw.accent) && accentByKey(raw.accent))) p.accent = raw.accent;
+  if (BIG_STATS.includes(raw.bigStat as StatKey)) p.bigStat = raw.bigStat as StatKey;
   if (Array.isArray(raw.stats)) {
     const stats = (raw.stats as unknown[]).filter((k): k is StatKey => STAT_ORDER.includes(k as StatKey));
     const unique = [...new Set(stats)].slice(0, MAX_STATS);

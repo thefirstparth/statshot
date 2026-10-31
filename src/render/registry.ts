@@ -9,20 +9,10 @@ import { summary } from './designs/summary';
 import { trace } from './designs/trace';
 import { widgets } from './designs/widgets';
 import { zones } from './designs/zones';
+import { DEFAULT_ACCENT } from './palette';
 import type { CardDesign } from './types';
 
-export const DEFAULT_ACCENT = '#FFB547';
-export const ACCENTS = ['#FFB547', '#FF6B35', '#FF4D8D', '#3DDC97', '#4CC9F0', '#0A84FF', '#B18CFF', '#FFFFFF'];
-export const ACCENT_NAMES: Record<string, string> = {
-  '#FFB547': 'Mango',
-  '#FF6B35': 'Orange',
-  '#FF4D8D': 'Pink',
-  '#3DDC97': 'Mint',
-  '#4CC9F0': 'Sky',
-  '#0A84FF': 'Blue',
-  '#B18CFF': 'Lilac',
-  '#FFFFFF': 'White',
-};
+export { ACCENTS, DEFAULT_ACCENT } from './palette';
 
 /** Catalogue order: the five strongest first. Starred favourites jump ahead of all of these. */
 export const DESIGNS: CardDesign[] = [summary, trace, pill, messages, hero, zones, receipt, editorial, widgets, poster, dial];

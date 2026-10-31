@@ -5,7 +5,7 @@ import { ACCENTS } from '../render/registry';
 import { prepareCard, releaseCanvas, renderThumb } from '../render/render';
 import { MAX_STATS, STAT_ORDER, type CardData, type CardDesign, type CardOptions, type SizeKey, type StatKey } from '../render/types';
 import type { Sport } from '../sports';
-import { MAX_FAVOURITES, type Appearance, type Prefs } from '../state/store';
+import { BIG_STATS, MAX_FAVOURITES, type Appearance, type Prefs } from '../state/store';
 import type { Workout } from '../tcx/parse';
 import { formatDuration, formatLongDate, formatTime, resolveMaxHr } from '../tcx/stats';
 import { NumberField, Segmented, Swatches, Toggle } from './controls';
@@ -155,9 +155,9 @@ export function SettingsSheet({
       <section class="settings-group">
         <h3 class="section-title">Heart-rate zones</h3>
         <p class="field-help">
-          Zones show how hard you worked (Light, Moderate, Vigorous, Peak). Zone minutes add them up, like Google
-          Health does. Enter your resting heart rate and your age to turn them on. They are saved only on this
-          phone.
+          Zones show how hard you worked (Light, Moderate, Vigorous, Peak), and cards can show your time at
+          moderate effort or harder. Enter your resting heart rate and your age to turn them on. They are saved only
+          on this phone.
         </p>
         <NumberField
           label="Resting heart rate"
@@ -261,8 +261,6 @@ export function SettingsSheet({
 const SIZE_NOTES: Record<SizeKey, string> = {
   sticker: 'only the card, to paste on a story or photo',
   story: 'tall, fills a phone screen',
-  post: 'a little taller than square, for a feed post',
-  square: 'square, for a feed post',
 };
 
 export function EditSheet({
@@ -303,6 +301,7 @@ export function EditSheet({
   };
   const themeLocked = design.supportsTheme === false;
   const full = stats.length >= MAX_STATS;
+  const bigOptions = BIG_STATS.filter((k) => data.stats[k]).map((k) => ({ value: k, label: data.stats[k]!.short }));
 
   return (
     <Sheet title="Customize" onClose={onClose} light class="sheet-customize">
@@ -313,11 +312,17 @@ export function EditSheet({
         options={[
           { value: 'sticker', label: 'Card only' },
           { value: 'story', label: 'Story' },
-          { value: 'post', label: 'Post' },
-          { value: 'square', label: 'Square' },
         ]}
         onChange={(size) => onChange({ size })}
       />
+      {design.supportsBigStat && bigOptions.length > 1 && (
+        <Segmented<StatKey>
+          label="Big number"
+          value={bigOptions.some((o) => o.value === prefs.bigStat) ? prefs.bigStat : 'duration'}
+          options={bigOptions}
+          onChange={(bigStat) => onChange({ bigStat })}
+        />
+      )}
       <Segmented
         label="Image colours"
         value={themeLocked ? 'light' : prefs.theme}
@@ -329,6 +334,7 @@ export function EditSheet({
         ]}
         onChange={(theme) => onChange({ theme })}
       />
+      {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
       <Segmented
         label="Background"
         note="See-through means no background, to put on your own photo"
@@ -357,7 +363,7 @@ export function EditSheet({
         {zonesLocked && hasHr && (
           <button type="button" class="toggle-row toggle-link" onClick={onOpenSettings}>
             <span class="toggle-text">
-              Zone minutes (how hard you worked)
+              Moderate or harder (how hard you worked)
               <span class="toggle-hint">Opens Settings, where you enter resting heart rate and age</span>
             </span>
             <Icon name="chevron_right" />
@@ -377,8 +383,6 @@ export function EditSheet({
         )}
         <Toggle label="Show Sweatshot mark" checked={prefs.showLogo} onChange={(showLogo) => onChange({ showLogo })} />
       </div>
-
-      {design.supportsAccent && <Swatches value={accent} colors={ACCENTS} onChange={(c) => onChange({ accent: c })} />}
 
       <button type="button" class="row-btn" onClick={onOpenDesigns} data-autofocus={focusDesigns ? true : undefined}>
         <Icon name="grid_view" />

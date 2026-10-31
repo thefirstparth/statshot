@@ -86,6 +86,8 @@ export type CardOptions = {
   stats: StatKey[]; // ordered, user-selected
   showLogo: boolean; // the small Sweatshot mark
   showGraph: boolean;
+  /** The stat Hero and Poster print huge (falls back to duration when the file lacks it). */
+  bigStat: StatKey;
 };
 
 export type IconRequest = { name: string; color: string; size: number };
@@ -103,6 +105,8 @@ export interface CardDesign {
   /** Text drawn straight on the background (no panel): gets a soft shadow when see-through. */
   floating?: boolean;
   defaultAccent?: string;
+  /** Hero and Poster: the user picks which stat is the big number. */
+  supportsBigStat?: boolean;
   /** Canvas fill when the background is "solid". */
   background(opts: CardOptions): string;
   /** Icon images this card draws, so they can be decoded before drawing. */
@@ -111,4 +115,7 @@ export interface CardDesign {
   measure(width: number, data: CardData, opts: CardOptions): { h: number };
 }
 
-export type SizeKey = 'story' | 'post' | 'square' | 'sticker';
+/** Export sizes: the card cropped tight, or a full 1080×1920 story. */
+export type SizeKey = 'story' | 'sticker';
+/** Everything canvasLayout can lay out; 'square' is only used for small previews. */
+export type CanvasSize = SizeKey | 'square';

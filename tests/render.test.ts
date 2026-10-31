@@ -10,7 +10,7 @@ import { sportById } from '../src/sports';
 import { parseTcx, type Workout } from '../src/tcx/parse';
 import { fixture } from './helpers';
 
-const SIZES: SizeKey[] = ['story', 'post', 'square', 'sticker'];
+const SIZES: SizeKey[] = ['story', 'sticker'];
 const THEMES = ['light', 'dark'] as const;
 const BACKGROUNDS = ['transparent', 'solid'] as const;
 
@@ -45,10 +45,11 @@ function options(stats: StatKey[], over: Partial<CardOptions> = {}): CardOptions
   return {
     theme: 'dark',
     background: 'transparent',
-    accent: '#FF6B35',
+    accent: '#4C8DFF',
     stats,
     showLogo: true,
     showGraph: true,
+    bigStat: 'duration',
     ...over,
   };
 }
@@ -98,7 +99,7 @@ describe('render', () => {
             expect(canvas.height).toBe(layout.height);
             if (size !== 'sticker') {
               expect(canvas.width).toBe(1080);
-              expect([1920, 1350, 1080]).toContain(canvas.height);
+              expect(canvas.height).toBe(1920);
             }
             expect(hasInk(canvas, { x: layout.x, y: layout.y, w: Math.floor(layout.box.w * layout.scale), h: Math.floor(layout.box.h * layout.scale) })).toBe(true);
             if (background === 'transparent' && !(design.id === 'receipt' && size === 'sticker')) {
@@ -146,7 +147,7 @@ describe('render', () => {
     for (const design of DESIGNS.filter((d) => !d.needsHr)) {
       const opts = options(['duration', 'energy', 'avgHr'], { accent: resolveAccent(design, null) });
       await prepareCard(design, nohr, opts);
-      const canvas = renderToNewCanvas(design, nohr, opts, 'post');
+      const canvas = renderToNewCanvas(design, nohr, opts, 'story');
       save(canvas, `nohr-${design.id}`);
     }
   });
