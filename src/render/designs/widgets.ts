@@ -1,10 +1,10 @@
-import { drawFitText, drawLogo, fillRoundRect, mix, rgba, roundRectPath, setFont, visibleStats, type FontSpec } from '../canvas';
+import { drawFitText, drawLogo, fillRoundRect, measureLogo, mix, rgba, roundRectPath, setFont, visibleStats, type FontSpec } from '../canvas';
 import { SANS } from '../font-faces';
 import { drawIconPath } from '../icons';
 import { accentInk, isMono } from '../palette';
 import { drawZoneLegend, drawZoneLine, zoneItems } from '../zone-graph';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { showsStat, STAT_ICONS } from './shared';
+import { shortPlace, showsStat, STAT_ICONS } from './shared';
 
 const GAP = 28;
 const TILE = 446; // a small square widget: (920 - GAP) / 2
@@ -21,7 +21,7 @@ const LOGO = 24;
 const GLYPHS: Record<string, string> = {
   bolt: 'M360-360H217q-18 0-26.5-16t2.5-31l338-488q8-11 20-15t24 1q12 5 19 16t5 24l-39 309h176q19 0 27 17t-4 32L388-66q-8 10-20.5 13T344-55q-11-5-17.5-16T322-95l38-265Z',
   moon: 'M484-80q-84 0-157.5-32t-128-86.5Q144-253 112-326.5T80-484q0-132 77.5-238T361-868q17-5 31 5t12 27q-7 88 23.5 169.5T521-522q63 63 145 94t170 24q17-2 26.5 13t4.5 32q-40 125-145.5 202T484-80Z',
-  sun: 'M480-280q-83 0-141.5-58.5T280-480q0-83 58.5-141.5T480-680q83 0 141.5 58.5T680-480q0 83-58.5 141.5T480-280ZM70-450q-13 0-21.5-8.5T40-480q0-13 8.5-21.5T70-510h100q13 0 21.5 8.5T200-480q0 13-8.5 21.5T170-450H70Zm720 0q-13 0-21.5-8.5T760-480q0-13 8.5-21.5T790-510h100q13 0 21.5 8.5T920-480q0 13-8.5 21.5T890-450H790ZM480-760q-13 0-21.5-8.5T450-790v-100q0-13 8.5-21.5T480-920q13 0 21.5 8.5T510-890v100q0 13-8.5 21.5T480-760Zm0 720q-13 0-21.5-8.5T450-70v-100q0-13 8.5-21.5T480-200q13 0 21.5 8.5T510-170v100q0 13-8.5 21.5T480-40Z',
+  sun: 'M338.5-338.5Q280-397 280-480t58.5-141.5Q397-680 480-680t141.5 58.5Q680-563 680-480t-58.5 141.5Q563-280 480-280t-141.5-58.5ZM70-450q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32Q57.25-510 70-510h100q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H70Zm720 0q-12.75 0-21.37-8.68-8.63-8.67-8.63-21.5 0-12.82 8.63-21.32 8.62-8.5 21.37-8.5h100q12.75 0 21.38 8.68 8.62 8.67 8.62 21.5 0 12.82-8.62 21.32-8.63 8.5-21.38 8.5H790ZM458.5-768.63Q450-777.25 450-790v-100q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v100q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63Zm0 720Q450-57.25 450-70v-100q0-12.75 8.68-21.38 8.67-8.62 21.5-8.62 12.82 0 21.32 8.62 8.5 8.63 8.5 21.38v100q0 12.75-8.68 21.37-8.67 8.63-21.5 8.63-12.82 0-21.32-8.63ZM240-678l-57-56q-9-9-8.63-21.6.37-12.61 8.53-21.5 8.89-8.9 21.5-8.9 12.6 0 21.6 9l56 57q8 9 8 21t-8 20.5q-8 8.5-20.5 8.5t-21.5-8Zm494 495-56-57q-8-9-8-21.38 0-12.37 8.5-20.62 8.5-9 20.5-9t21 9l57 56q9 9 8.63 21.6-.37 12.61-8.53 21.5-8.89 8.9-21.5 8.9-12.6 0-21.6-9Zm-56-495q-9-9-9-21t9-21l56-57q9-9 21.6-8.63 12.61.37 21.5 8.53 8.9 8.89 8.9 21.5 0 12.6-9 21.6l-57 56q-8 8-20.36 8-12.37 0-21.64-8ZM182.9-182.9q-8.9-8.89-8.9-21.5 0-12.6 9-21.6l57-56q8.8-9 20.9-9 12.1 0 20.71 9 9.39 9 9.39 21t-9 21l-56 57q-9 9-21.6 8.63-12.61-.37-21.5-8.53Z',
 };
 
 function drawGlyph(ctx: CanvasRenderingContext2D, name: string, color: string, x: number, y: number, size: number): void {
@@ -81,7 +81,8 @@ function layout(data: CardData, opts: CardOptions) {
   if (graph && !rows.some((r) => r.kind === 'graph')) rows.push({ kind: 'graph' });
   const gridH = rows.length * TILE + (rows.length - 1) * GAP;
   const logoTop = gridH + 32;
-  const h = opts.showLogo ? logoTop + LOGO * 1.2 + 8 : gridH;
+  const footer = opts.showLogo || !!data.location;
+  const h = footer ? logoTop + LOGO * 1.2 + 8 : gridH;
   const timeTile = stats.some((s) => s.key === 'timeRange');
   return { rows, smalls, timeTile, logoTop, h };
 }
@@ -239,7 +240,10 @@ function drawGraph(ctx: CanvasRenderingContext2D, x: number, y: number, w: numbe
   ].filter(Boolean);
   if (parts.length) drawFitText(ctx, `${parts.join(' · ')} bpm`, x + w - P, headBase, inner / 2, { family: SANS, weight: 500, size: TINY }, c.muted, 'right', 0.8);
 
-  const items = zoneItems(data, opts.theme);
+  // Zone times appear once: when the effort widget's time is the same as one zone's (only one
+  // zone at moderate or harder), that zone keeps its colour key but not the repeated time.
+  const effort = showsStat(data, opts, 'zoneMin') ? data.stats.zoneMin?.value : undefined;
+  const items = zoneItems(data, opts.theme).map((it) => (it.text === effort ? { ...it, text: '' } : it));
   let bottom = y + TILE - P;
   const legendBase = bottom - TINY * 0.25;
   if (items.length) bottom = legendBase - TINY - 26;
@@ -292,10 +296,21 @@ export const widgets: CardDesign = {
       y += TILE + GAP;
     }
 
-    if (opts.showLogo) {
+    // Footer: the mark and the place, centred as one line.
+    const place = shortPlace(data, 34);
+    if (opts.showLogo || place) {
       const clear = opts.background === 'transparent';
-      const ink = opts.theme === 'dark' ? rgba('#FFFFFF', clear ? 0.8 : 0.35) : rgba('#15171A', clear ? 0.7 : 0.4);
-      drawLogo(ctx, box.x + box.w / 2, box.y + L.logoTop + LOGO * 0.6, LOGO, ink, 'center');
+      const ink = opts.theme === 'dark' ? rgba('#FFFFFF', clear ? 0.8 : 0.4) : rgba('#15171A', clear ? 0.7 : 0.45);
+      const f: FontSpec = { family: SANS, weight: 500, size: LOGO };
+      const text = place ? (opts.showLogo ? ` · ${place}` : place) : '';
+      setFont(ctx, f);
+      const lw = opts.showLogo ? measureLogo(ctx, LOGO) : 0;
+      setFont(ctx, f);
+      const tw = Math.min(ctx.measureText(text).width, box.w - lw);
+      let fx = box.x + (box.w - lw - tw) / 2;
+      const cy = box.y + L.logoTop + LOGO * 0.6;
+      if (opts.showLogo) fx += drawLogo(ctx, fx, cy, LOGO, ink);
+      if (text) drawFitText(ctx, text, fx, cy + LOGO * 0.36, box.w - lw, f, ink, 'left', 0.8);
     }
   },
 };

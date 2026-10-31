@@ -24,6 +24,19 @@ const colors = (opts: CardOptions) =>
 
 type Row = { name: string; range: string; pct: string; time: string; color: string | null };
 
+/**
+ * The centre number. Normally the real time at moderate or harder; when that is exactly one
+ * zone's time (only one zone that hard), it would repeat that row, so the centre shows the share
+ * of the session instead (and the rows drop their % column).
+ */
+function centre(data: CardData, opts: CardOptions): { big: string; share: boolean } | null {
+  const effort = effortMinutes(data);
+  if (effort === null) return null;
+  const time = data.stats.zoneMin?.value ?? formatMinutes(effort);
+  if (!zoneItems(data, opts.theme).some((it) => it.text === time)) return { big: time, share: false };
+  return { big: `${Math.round((effort / Math.max(1, data.durationSec / 60)) * 100)}%`, share: true };
+}
+
 /** Legend rows, hardest zone first. Zero-minute zones are left out; the top zone shown has no ceiling. */
 function rows(data: CardData, opts: CardOptions): Row[] {
   const z = data.zones;
@@ -36,7 +49,7 @@ function rows(data: CardData, opts: CardOptions): Row[] {
     .map((it) => ({
       name: it.name,
       range: it === top && it.index > 0 ? `${starts[it.index - 1]}+ bpm` : it.range,
-      pct: `${Math.round((it.minutes / total) * 100)}%`,
+      pct: centre(data, opts)?.share ? '' : `${Math.round((it.minutes / total) * 100)}%`,
       time: it.text,
       color: it.color,
     }))
@@ -127,9 +140,9 @@ export const zones: CardDesign = {
     const cy = box.y + L.donutTop + DONUT / 2;
     drawDonut(ctx, items, cx, cy, c.empty);
     const inner = DONUT - RING * 2 - 48;
-    const effort = effortMinutes(data);
-    if (effort !== null) {
-      drawFitText(ctx, data.stats.zoneMin?.value ?? formatMinutes(effort), cx, cy + 16, inner, { family: SANS, weight: 800, size: 104 }, c.ink, 'center', 0.6);
+    const ctr = centre(data, opts);
+    if (ctr) {
+      drawFitText(ctx, ctr.big, cx, cy + 16, inner, { family: SANS, weight: 800, size: 104 }, c.ink, 'center', 0.6);
       drawFitText(ctx, 'moderate or harder', cx, cy + 66, inner, { family: SANS, weight: 500, size: 28 }, rgba(c.ink, 0.6), 'center', 0.7);
       drawFitText(ctx, `of ${data.stats.duration?.value ?? ''}`, cx, cy + 104, inner, { family: SANS, weight: 500, size: 28 }, rgba(c.ink, 0.6), 'center', 0.7);
     } else {
