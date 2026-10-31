@@ -22,8 +22,11 @@ const GAP = 10;
 export function statSentence(data: CardData, stats: StatItem[]): string {
   const duration = stats.find((s) => s.key === 'duration');
   const rest = stats.filter((s) => s.key !== 'duration').map((s) => s.phrase.replace(/ (kcal|bpm|km|mi|min)\b/g, '\u00A0$1'));
-  if (duration) return [`${duration.value} of ${data.sportLower}`, ...rest].join(', ');
-  if (rest.length === 0) return `${data.sportName} done`;
+  // The title bubble already names the sport unless the user gave the workout its own title.
+  const named = data.title.toLowerCase() === data.sportName.toLowerCase();
+  if (duration) return [named ? duration.value : `${duration.value} of ${data.sportLower}`, ...rest].join(', ');
+  if (rest.length === 0) return named ? 'Done' : `${data.sportName} done`;
+  if (named) return rest.join(', ');
   const [first, ...more] = rest;
   return [`${data.sportName}: ${first}`, ...more].join(', ');
 }

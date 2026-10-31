@@ -224,7 +224,7 @@ describe('card data', () => {
   it('builds the Messages sentence', () => {
     const opts = { stats: ['duration', 'energy', 'avgHr'] } as CardOptions;
     // Units are glued to their numbers with no-break spaces so a line never splits "496 / kcal".
-    expect(statSentence(data, visibleStats(data, opts)).replace(/\u00A0/g, ' ')).toBe('1h 51m of table tennis, 496 kcal, avg 112 bpm');
+    expect(statSentence(data, visibleStats(data, opts)).replace(/\u00A0/g, ' ')).toBe('1h 51m, 496 kcal, avg 112 bpm'); // the title bubble already says Table tennis
     expect(statSentence(data, visibleStats(data, opts))).toContain('496\u00A0kcal');
   });
 

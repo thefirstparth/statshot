@@ -319,7 +319,7 @@ export const receipt: CardDesign = {
     doubleRule(ctx, left, Y(L.dbl2), inner);
 
     // The times, once.
-    tracked(ctx, `SERVED ${data.timeText} – ${data.endTimeText}`.toUpperCase(), cx, Y(L.servedY), SERVED, 400, INK, 'center', inner);
+    tracked(ctx, `SERVED ${data.stats.timeRange?.value ?? data.timeText}`.toUpperCase(), cx, Y(L.servedY), SERVED, 400, INK, 'center', inner);
 
     // Heart-rate barcode: thin bars on a midline, one per time slice.
     if (L.bars.length) {

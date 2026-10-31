@@ -231,7 +231,7 @@ export const dial: CardDesign = {
     // Centre: sport sticker, duration, time range.
     drawSportBadge(ctx, data, cx - BADGE / 2, cy - 196, BADGE, opts);
     drawFitText(ctx, data.stats.duration?.value ?? '', cx, cy + 62, R * 1.1, { family: DISPLAY, weight: 800, size: 124 }, c.ink, 'center', 0.5);
-    drawFitText(ctx, `${data.timeText} – ${data.endTimeText}`, cx, cy + 128, R * 1.2, { family: MONO, weight: 400, size: 36 }, c.muted, 'center', 0.7);
+    drawFitText(ctx, data.stats.timeRange?.value ?? data.timeText, cx, cy + 128, R * 1.2, { family: MONO, weight: 400, size: 36 }, c.muted, 'center', 0.7);
 
     // Below the dial: title, date (the centre has the times), zone legend, stats.
     drawFitText(ctx, data.title, cx, box.y + L.titleTop + TITLE * 0.9, box.w, { family: SANS, weight: 700, size: TITLE }, c.ink, 'center', 0.6);
