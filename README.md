@@ -8,7 +8,7 @@
 Runs on your phone. Never uploads your file. Works offline. No account.</p>
 
 <p align="center">
-  <a href="https://statshot-five.vercel.app"><img alt="Open the app" src="https://img.shields.io/badge/open_the_app-statshot--five.vercel.app-FFB547?style=for-the-badge"></a>
+  <a href="https://sweatshot.vercel.app"><img alt="Open the app" src="https://img.shields.io/badge/open_the_app-sweatshot.vercel.app-FFB547?style=for-the-badge"></a>
 </p>
 <p align="center">
   <img alt="No backend" src="https://img.shields.io/badge/backend-none-2A1E14">
@@ -40,9 +40,9 @@ No file yet? Tap **Try a sample workout** on the home screen.
 
 | Where | What to do |
 | --- | --- |
-| **iPhone (Safari)** | Open [the app](https://statshot-five.vercel.app) → Share → **Add to Home Screen**. After that it works offline. |
-| **Android (Chrome)** | Open [the app](https://statshot-five.vercel.app) → ⋮ → **Install app** (on some phones, **Add to Home screen**). Once installed you can also **share a .tcx file straight to Sweatshot** from Files. |
-| **Desktop** | Open [the app](https://statshot-five.vercel.app) and drop a `.tcx` file anywhere on the page. |
+| **iPhone (Safari)** | Open [the app](https://sweatshot.vercel.app) → Share → **Add to Home Screen**. After that it works offline. |
+| **Android (Chrome)** | Open [the app](https://sweatshot.vercel.app) → ⋮ → **Install app** (on some phones, **Add to Home screen**). Once installed you can also **share a .tcx file straight to Sweatshot** from Files. |
+| **Desktop** | Open [the app](https://sweatshot.vercel.app) and drop a `.tcx` file anywhere on the page. |
 
 ## The designs
 
