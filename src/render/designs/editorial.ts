@@ -307,7 +307,7 @@ function layout(width: number, data: CardData, opts: CardOptions) {
   if (copy.inside) {
     setFont(ctx, { family: SERIF, weight: 400, size: INS_HEAD, style: 'italic' });
     insideLines = wrapText(ctx, copy.inside.head, INS_W, 4);
-    insideBottom = linesTop + CAP + 22 + insideLines.length * INS_HEAD * 1.08 + 18 + SMALL + 14 + 19;
+    insideBottom = linesTop + CAP + 22 + insideLines.length * INS_HEAD * 1.08 + 30 + 14 + 19;
   }
   const contentBottom = Math.max(linesBottom, insideBottom);
 
@@ -431,7 +431,7 @@ export const editorial: CardDesign = {
         y += INS_HEAD * 1.08;
         ctx.fillText(line, right, y - INS_HEAD * 0.2);
       }
-      y += 18;
+      y += 30;
       setFont(ctx, { family: SANS, weight: 600, size: SMALL });
       ctx.fillText(ellipsize(ctx, ins.values, INS_W), right, y);
       y += 14 + 19;
