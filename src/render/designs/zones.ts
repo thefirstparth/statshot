@@ -3,7 +3,7 @@ import { SANS } from '../font-faces';
 import { drawIconPath } from '../icons';
 import { ZONE_NAMES } from '../palette';
 import { formatMinutes, hrrZoneStarts } from '../../tcx/stats';
-import { effortMinutes, zoneItems, type ZoneItem } from '../zone-graph';
+import { effortMinutes, unmeasuredMinutes, zoneItems, type ZoneItem } from '../zone-graph';
 import type { CardData, CardDesign, CardOptions, Rect } from '../types';
 import { baseline, drawSportBadge, shortPlace } from './shared';
 
@@ -42,18 +42,23 @@ function rows(data: CardData, opts: CardOptions): Row[] {
   const z = data.zones;
   if (!z) return [...ZONE_NAMES].reverse().map((name) => ({ name, range: '', pct: '', time: '–', color: null }));
   const items = zoneItems(data, opts.theme);
-  const total = items.reduce((s, it) => s + it.minutes, 0) || 1;
+  // Shares are of the whole playing time, so time without heart rate gets its own row.
+  const missing = unmeasuredMinutes(data);
+  const total = items.reduce((s, it) => s + it.minutes, 0) + missing || 1;
   const starts = hrrZoneStarts(z.restingHr, z.maxHr);
   const top = items[items.length - 1];
-  return items
+  const share = centre(data, opts)?.share;
+  const out: Row[] = items
     .map((it) => ({
       name: it.name,
       range: it === top && it.index > 0 ? `${starts[it.index - 1]}+ bpm` : it.range,
-      pct: centre(data, opts)?.share ? '' : `${Math.round((it.minutes / total) * 100)}%`,
+      pct: share ? '' : `${Math.round((it.minutes / total) * 100)}%`,
       time: it.text,
       color: it.color,
     }))
     .reverse();
+  if (missing) out.push({ name: 'No heart rate', range: '', pct: share ? '' : `${Math.round((missing / total) * 100)}%`, time: formatMinutes(missing), color: null });
+  return out;
 }
 
 function layout(data: CardData, opts: CardOptions) {
@@ -69,7 +74,7 @@ function layout(data: CardData, opts: CardOptions) {
 
 /** "Sat 31 Oct · 1:11 AM–4:04 AM", plus the place when it fits without shrinking. */
 function headerLine(ctx: CanvasRenderingContext2D, data: CardData, maxW: number): string {
-  const base = `${data.weekday} ${data.shortDate} · ${data.stats.timeRange?.value ?? data.timeText}`;
+  const base = [`${data.weekday} ${data.shortDate}`, data.sessionsText, data.stats.timeRange?.value ?? data.timeText].filter(Boolean).join(' · ');
   const place = shortPlace(data);
   if (!place) return base;
   const withPlace = `${base} · ${place}`;
@@ -77,7 +82,7 @@ function headerLine(ctx: CanvasRenderingContext2D, data: CardData, maxW: number)
   return ctx.measureText(withPlace).width <= maxW ? withPlace : base;
 }
 
-function drawDonut(ctx: CanvasRenderingContext2D, items: ZoneItem[], cx: number, cy: number, empty: string): void {
+function drawDonut(ctx: CanvasRenderingContext2D, items: ZoneItem[], cx: number, cy: number, empty: string, missing: number): void {
   const r = DONUT / 2 - RING / 2;
   ctx.lineWidth = RING;
   ctx.lineCap = 'butt';
@@ -88,9 +93,9 @@ function drawDonut(ctx: CanvasRenderingContext2D, items: ZoneItem[], cx: number,
     ctx.stroke();
     return;
   }
-  const total = items.reduce((s, it) => s + it.minutes, 0) || 1;
+  const total = items.reduce((s, it) => s + it.minutes, 0) + missing || 1;
   // A small gap between segments (none when there's only one).
-  const gap = items.length > 1 ? 0.035 : 0;
+  const gap = items.length > 1 || missing ? 0.035 : 0;
   let a = -Math.PI / 2;
   for (const it of items) {
     const span = (it.minutes / total) * Math.PI * 2;
@@ -99,6 +104,13 @@ function drawDonut(ctx: CanvasRenderingContext2D, items: ZoneItem[], cx: number,
     ctx.strokeStyle = it.color;
     ctx.stroke();
     a += span;
+  }
+  if (missing) {
+    // Time without heart rate: the rest of the ring, in the empty-track colour.
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, a + gap / 2, -Math.PI / 2 + Math.PI * 2 - gap / 2);
+    ctx.strokeStyle = empty;
+    ctx.stroke();
   }
 }
 
@@ -138,7 +150,7 @@ export const zones: CardDesign = {
     const items = zoneItems(data, opts.theme);
     const cx = box.x + box.w / 2;
     const cy = box.y + L.donutTop + DONUT / 2;
-    drawDonut(ctx, items, cx, cy, c.empty);
+    drawDonut(ctx, items, cx, cy, c.empty, unmeasuredMinutes(data));
     const inner = DONUT - RING * 2 - 48;
     const ctr = centre(data, opts);
     if (ctr) {

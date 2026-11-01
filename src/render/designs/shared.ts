@@ -166,7 +166,9 @@ export function cardMeta(data: CardData, opts: CardOptions): string {
 export function metaLine(data: CardData, withTime = true): string {
   // With a place, the time makes way so the line stays readable instead of shrinking.
   const place = shortPlace(data);
-  return [`${data.weekday} ${data.shortDate}`, withTime && !place ? data.timeText : '', place].filter(Boolean).join(' · ');
+  // Several sessions: "2 sessions" says more than the first start time would.
+  const time = withTime && !place && !data.sessionsText ? data.timeText : '';
+  return [`${data.weekday} ${data.shortDate}`, data.sessionsText, time, place].filter(Boolean).join(' · ');
 }
 
 /** The location, shortened past `max` characters (an emoji counts as one): first part before a comma, else cut with "…". */

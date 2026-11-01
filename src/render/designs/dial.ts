@@ -60,30 +60,39 @@ function zoneRuns(data: CardData): Run[] {
   const z = data.zones;
   const s = data.hrSeries;
   if (!z || s.length < 2) return [];
-  const dur = Math.max(data.durationSec, s[s.length - 1].t);
-  const win = Math.max(MIN_RUN_SEC, dur / 60);
-  const n = Math.max(1, Math.round(dur / win));
-  const time = Array.from({ length: n }, () => [0, 0, 0, 0]);
+  // Windows never straddle two sessions, so one session's colour can't spill into the next.
+  const win = Math.max(MIN_RUN_SEC, data.durationSec / 60);
+  const windows: { t0: number; t1: number; time: number[] }[] = [];
+  for (const sess of data.sessions) {
+    const n = Math.max(1, Math.round(sess.durationSec / win));
+    for (let w = 0; w < n; w++) {
+      windows.push({ t0: sess.activeStart + (w * sess.durationSec) / n, t1: sess.activeStart + ((w + 1) * sess.durationSec) / n, time: [0, 0, 0, 0] });
+    }
+  }
   s.forEach((p, i) => {
-    const t0 = i === 0 ? 0 : (s[i - 1].t + p.t) / 2;
-    const t1 = i === s.length - 1 ? dur : (p.t + s[i + 1].t) / 2;
+    // A sample speaks for at most a minute either side and never outside its own session, so a
+    // session (or stretch) without heart rate never inherits the colour of the one before it.
+    const own = data.sessions.find((x) => p.t >= x.activeStart && p.t < x.activeStart + x.durationSec);
+    const lo0 = own ? own.activeStart : 0;
+    const hi0 = own ? own.activeStart + own.durationSec : Infinity;
+    const t0 = Math.max(i === 0 ? 0 : (s[i - 1].t + p.t) / 2, p.t - 60, lo0);
+    const t1 = Math.min(i === s.length - 1 ? p.t + 60 : (p.t + s[i + 1].t) / 2, p.t + 60, hi0);
     const zone = hrrZone(p.bpm, z.restingHr, z.maxHr);
-    // Spread this sample's time over the windows it overlaps.
-    for (let w = Math.floor((t0 / dur) * n); w < n && (w * dur) / n < t1; w++) {
-      const lo = Math.max(t0, (w * dur) / n);
-      const hi = Math.min(t1, ((w + 1) * dur) / n);
-      if (hi > lo) time[w][zone] += hi - lo;
+    for (const w of windows) {
+      const lo = Math.max(t0, w.t0);
+      const hi = Math.min(t1, w.t1);
+      if (hi > lo) w.time[zone] += hi - lo;
     }
   });
   const out: Run[] = [];
-  time.forEach((t, w) => {
-    const zone = t.indexOf(Math.max(...t));
-    const t0 = (w * dur) / n;
-    const t1 = ((w + 1) * dur) / n;
+  for (const w of windows) {
+    const most = Math.max(...w.time);
+    if (most === 0) continue; // no heart rate here: drawn in the picked colour instead
+    const zone = w.time.indexOf(most);
     const last = out[out.length - 1];
-    if (last && last.zone === zone) last.t1 = t1;
-    else out.push({ zone, t0, t1 });
-  });
+    if (last && last.zone === zone && last.t1 === w.t0) last.t1 = w.t1;
+    else out.push({ zone, t0: w.t0, t1: w.t1 });
+  }
   return out;
 }
 
@@ -177,25 +186,33 @@ export const dial: CardDesign = {
     });
     ctx.textBaseline = 'alphabetic';
 
-    // The session arc, coloured by zone along its length (one accent arc without zones).
-    // Short sessions still get a visible arc (at least ~40 minutes of the dial).
-    const realMin = data.durationSec / 60;
-    const shownMin = Math.min(Math.max(realMin, 40), 1439);
-    const k = realMin > 0 ? shownMin / realMin : 1;
-    const at = (sec: number) => angle(data.startMin + (sec / 60) * k);
-    const a0 = angle(data.startMin);
-    const a1 = angle(data.startMin + shownMin);
+    // One arc per session at its real time, coloured by zone along its length (one accent arc
+    // without zones). Short sessions still get a visible arc (≥ ~40 min of the dial, or ~20 min
+    // each when there are several).
     const LW = 34;
     const runs = zoneRuns(data);
-    if (runs.length === 0) {
-      ctx.beginPath();
-      ctx.arc(cx, cy, R, a0, a1);
-      ctx.strokeStyle = accentInk(opts);
-      ctx.lineWidth = LW;
-      ctx.lineCap = 'round';
-      ctx.stroke();
-    } else {
-      const zc = zoneColors(opts.theme);
+    const zc = zoneColors(opts.theme);
+    const minShown = data.sessions.length > 1 ? 20 : 40;
+    for (const sess of data.sessions) {
+      const realMin = sess.durationSec / 60;
+      const shownMin = Math.min(Math.max(realMin, minShown), 1439);
+      const k = realMin > 0 ? shownMin / realMin : 1;
+      // hrSeries time (active seconds) → angle on this session's arc.
+      const at = (t: number) => angle(sess.startMin + ((t - sess.activeStart) / 60) * k);
+      const a0 = angle(sess.startMin);
+      const a1 = angle(sess.startMin + shownMin);
+      const own = runs
+        .map((r) => ({ zone: r.zone, t0: Math.max(r.t0, sess.activeStart), t1: Math.min(r.t1, sess.activeStart + sess.durationSec) }))
+        .filter((r) => r.t1 > r.t0);
+      if (own.length === 0) {
+        ctx.beginPath();
+        ctx.arc(cx, cy, R, a0, a1);
+        ctx.strokeStyle = accentInk(opts);
+        ctx.lineWidth = LW;
+        ctx.lineCap = 'round';
+        ctx.stroke();
+        continue;
+      }
       const cap = (a: number, color: string) => {
         ctx.beginPath();
         ctx.arc(cx + R * Math.cos(a), cy + R * Math.sin(a), LW / 2, 0, Math.PI * 2);
@@ -206,22 +223,22 @@ export const dial: CardDesign = {
       ctx.save();
       ctx.beginPath();
       ctx.arc(cx, cy, R, a0, a1);
-      ctx.strokeStyle = zc[runs[0].zone];
+      ctx.strokeStyle = zc[own[0].zone];
       ctx.lineWidth = LW;
       ctx.lineCap = 'round';
       ctx.stroke();
       ctx.shadowColor = 'transparent';
       ctx.shadowBlur = 0;
-      cap(a0, zc[runs[0].zone]);
-      cap(a1, zc[runs[runs.length - 1].zone]);
+      cap(a0, zc[own[0].zone]);
+      cap(a1, zc[own[own.length - 1].zone]);
       ctx.lineCap = 'butt';
       ctx.lineWidth = LW;
-      runs.forEach((r, i) => {
+      own.forEach((r, i) => {
         // A hair of overlap so neighbouring colours meet without a seam.
-        const s = i === 0 ? a0 : at(r.t0);
-        const e = i === runs.length - 1 ? a1 : at(r.t1) + 0.003;
+        const s0 = i === 0 ? a0 : at(r.t0);
+        const e = i === own.length - 1 ? a1 : at(r.t1) + 0.003;
         ctx.beginPath();
-        ctx.arc(cx, cy, R, s, e);
+        ctx.arc(cx, cy, R, s0, e);
         ctx.strokeStyle = zc[r.zone];
         ctx.stroke();
       });

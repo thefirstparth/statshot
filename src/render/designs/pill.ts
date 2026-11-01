@@ -134,7 +134,7 @@ function layout(ctx: Ctx, width: number, data: CardData, opts: CardOptions) {
   const heading = fitText(ctx, data.title, textMax, HEADING, 0.7);
   const headingW = ctx.measureText(heading.text).width;
   // The start time is left out when the time-range chip already shows it.
-  const lineText = [`${data.weekday} ${data.shortDate}`, shortPlace(data, 22) || (showsTimeStat(data, opts) ? '' : data.timeText)].filter(Boolean).join(' · ');
+  const lineText = [`${data.weekday} ${data.shortDate}`, data.sessionsText || shortPlace(data, 22) || (showsTimeStat(data, opts) ? '' : data.timeText)].filter(Boolean).join(' · ');
   const line = fitText(ctx, lineText, textMax, LINE, 0.85);
   const lineW = ctx.measureText(line.text).width;
   const mainW = Math.ceil(MAIN_PAD_L + STICKER + MAIN_GAP + Math.max(headingW, lineW) + MAIN_PAD_R);

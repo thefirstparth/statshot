@@ -18,10 +18,15 @@ self.addEventListener('fetch', (event: FetchEvent) => {
     (async () => {
       try {
         const form = await event.request.formData();
-        const file = form.getAll('file').find((v): v is File => typeof v !== 'string');
-        if (file) {
+        // Several sessions can be shared at once; each is parked as /shared-file-0, -1, …
+        const files = form.getAll('file').filter((v): v is File => typeof v !== 'string');
+        if (files.length) {
           const cache = await caches.open(SHARE_CACHE);
-          await cache.put('/shared-file', new Response(file, { headers: { 'Content-Type': 'application/octet-stream' } }));
+          await Promise.all(
+            files.map((file, i) =>
+              cache.put(`/shared-file-${i}`, new Response(file, { headers: { 'Content-Type': 'application/octet-stream' } })),
+            ),
+          );
         }
       } catch {
         // Fall through: the app opens normally.

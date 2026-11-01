@@ -30,7 +30,7 @@ Google Health (and the Fitbit Air) records your workouts beautifully, but it can
 | Step | What happens |
 | --- | --- |
 | **1. Export** | In Google Health, open the workout, tap ⋯, then **Export**, and save the file to Files. |
-| **2. Open** | In Sweatshot, tap **Open workout file** and pick it. Your phone reads it; nothing leaves the device. |
+| **2. Open** | In Sweatshot, tap **Open workout file** and pick it (or several, if you played more than once that day). Your phone reads them; nothing leaves the device. |
 | **3. Pick the sport** | The file just says "Other", so tap what you did: table tennis, pickleball, a walk, the gym, 35 sports in all, or type your own. Walks and runs are pre-selected from your pace. |
 | **4. Share** | Swipe through the designs, flip **Card only / Story**, tap **Customize** for more, then **Save image**. **Copy image** and **Share** also appear when your browser supports them. |
 
@@ -103,7 +103,8 @@ Heart-rate reserve is *max − resting*. Cards show **real time** in each zone (
 | --- | --- |
 | Google Health / Fitbit Air export (`.tcx`) | ✅ Made for it: heart rate, energy, duration, distance for walks and runs |
 | Other apps' `.tcx` files (Garmin, Strava, Polar…) | ✅ Should work: Sweatshot reads standard TCX |
-| Files with several workouts | ✅ You pick which one |
+| Files with several workouts | ✅ Use one, or combine them |
+| Several sessions on one day | ✅ Pick the files together and they become one card |
 | Files without heart rate | ✅ Heart-rate designs are hidden; the rest work |
 | `.gpx`, `.fit`, screenshots | ❌ No |
 
@@ -112,6 +113,8 @@ Heart-rate reserve is *max − resting*. Cards show **real time** in each zone (
 **Is it really free and private?** Yes. There's no account, no ads and no server to send anything to.
 
 **Why do I have to pick the sport?** Google Health exports most workouts as "Other". Your recent sports appear first next time.
+
+**I played twice today. Can I make one card?** Yes. Export each session and pick all the files together (or tap **Add another session** in the workout details). The card runs from your first start to your last finish, while the duration and energy add up only the time you played. Heart rate is averaged over playing time, and the card says how many sessions it covers. Sessions that overlap, or that span more than a day, can't be combined.
 
 **My numbers differ by a minute or a beat from Google Health.** Durations are rounded to the nearest minute, and averages are computed from the raw samples in the file, so tiny differences can happen.
 

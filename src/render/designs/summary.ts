@@ -58,7 +58,7 @@ function rows(stats: StatItem[]): StatItem[][] {
  */
 function subLines(ctx: Ctx, data: CardData, opts: CardOptions, maxW: number): string[] {
   const range = data.stats.timeRange?.value ?? `${data.timeText}–${data.endTimeText}`;
-  const main = [`${data.weekday} ${data.shortDate}`, showsTimeStat(data, opts) ? '' : range].filter(Boolean).join(' · ');
+  const main = [`${data.weekday} ${data.shortDate}`, data.sessionsText, showsTimeStat(data, opts) ? '' : range].filter(Boolean).join(' · ');
   const place = shortPlace(data);
   if (!place) return [main];
   const joined = `${main} · ${place}`;

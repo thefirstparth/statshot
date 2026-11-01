@@ -15,7 +15,7 @@ function altText(design: CardDesign, data: CardData, opts: CardOptions): string 
     design.needsZones && data.zones
       ? `. Time in zones: ${zoneItems(data, opts.theme).map((z) => `${z.name.toLowerCase()} ${z.text}`).join(', ')}`
       : '';
-  return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${stats ? `. ${stats}` : ''}${zones}`;
+  return `${design.name} card: ${data.title}, ${data.weekday} ${data.shortDate}${data.sessionsText ? `, ${data.sessionsText}` : ''}${stats ? `. ${stats}` : ''}${zones}`;
 }
 
 type PreviewProps = {

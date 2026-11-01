@@ -104,7 +104,9 @@ export const messages: CardDesign = {
     ctx.fillStyle = opts.theme === 'dark' ? (opts.background === 'transparent' ? '#E5E5EA' : '#98989F') : '#6C6C70';
     ctx.textAlign = 'right';
     // The bubble already says when when the time range is on, so the footer keeps just the date.
-    const when = data.location || showsTimeStat(data, opts) ? data.shortDate : `${data.shortDate} at ${data.timeText}`;
+    const when = data.sessionsText
+      ? `${data.shortDate} · ${data.sessionsText}`
+      : data.location || showsTimeStat(data, opts) ? data.shortDate : `${data.shortDate} at ${data.timeText}`;
     const meta = [when, shortPlace(data, 22), opts.showLogo ? 'Sweatshot' : ''].filter(Boolean).join(' · ');
     ctx.fillText(ellipsize(ctx, meta, box.w - 40), right - 8, box.y + baseline(L.metaTop, META.size));
   },

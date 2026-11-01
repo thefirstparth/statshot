@@ -5,7 +5,7 @@ import { measureContext } from '../env';
 import { SANS, SERIF } from '../font-faces';
 import { accentByKey, isMono } from '../palette';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { effortMinutes } from '../zone-graph';
+import { effortMinutes, graphX, sessionCuts } from '../zone-graph';
 import { shortPlace, showsStat } from './shared';
 
 type Ctx = CanvasRenderingContext2D;
@@ -173,7 +173,9 @@ export function editorialCopy(data: CardData, opts: CardOptions): EditorialCopy 
   const fresh = (vals: string[]) => vals.every((v) => !printed.has(v));
 
   let inside: InsideLine | null = null;
-  if (data.hrSeries.length >= 2) {
+  // Hours and halves are measured on playing time, so across a break between sessions they'd
+  // describe stretches that never happened in one go: no Inside line for combined sessions.
+  if (data.hrSeries.length >= 2 && data.sessions.length === 1) {
     const slices = hourSlices(data.hrSeries, data.durationSec);
     for (const c of [climbLine(slices), hardestLine(slices), halvesLine(data.hrSeries, data.durationSec)]) {
       if (c && fresh(c.nums)) {
@@ -339,26 +341,45 @@ function layout(width: number, data: CardData, opts: CardOptions) {
   return { copy, mast, mastBase, mastPitch, ruleY, big, lineH, gap, leftW, linesTop, insideLines, art, bandTop, band, storyLines, storyTop, h };
 }
 
-/** The heart-rate line, gently smoothed, as a filled silhouette down to the bottom of the cover. */
-function drawSilhouette(ctx: Ctx, series: HrSample[], x: number, w: number, top: number, band: number, bottom: number, ink: string): void {
+/**
+ * The heart-rate line, gently smoothed, as a filled silhouette down to the bottom of the cover.
+ * With several sessions each one is its own peak range (smoothed on its own), and the breaks
+ * between them sit flat at the foot of the band.
+ */
+function drawSilhouette(ctx: Ctx, data: CardData, x: number, w: number, top: number, band: number, bottom: number, ink: string): void {
+  const series = data.hrSeries;
   const half = 2;
-  const sm = series.map((p, i) => {
-    let s = 0;
-    let n = 0;
-    for (let j = Math.max(0, i - half); j <= Math.min(series.length - 1, i + half); j++) {
-      s += series[j].bpm;
-      n++;
-    }
-    return { t: p.t, bpm: s / n };
+  const cuts = sessionCuts(data).filter(([a, b]) => b - a >= 2);
+  const smoothed = cuts.map(([a, b]) => {
+    const part = series.slice(a, b);
+    return part.map((p, i) => {
+      let s = 0;
+      let n = 0;
+      for (let j = Math.max(0, i - half); j <= Math.min(part.length - 1, i + half); j++) {
+        s += part[j].bpm;
+        n++;
+      }
+      return { t: p.t, bpm: s / n };
+    });
   });
-  const pts = graphPoints(sm, { x, y: top, w, h: band }, seriesRange(sm));
-  ctx.beginPath();
-  ctx.moveTo(x, bottom);
-  tracePath(ctx, pts, false);
-  ctx.lineTo(x + w, bottom);
-  ctx.closePath();
+  const scale = seriesRange(smoothed.flat());
+  const rect = { x, y: top, w, h: band };
   ctx.fillStyle = ink;
-  ctx.fill();
+  if (cuts.length > 1 || data.sessions.length > 1) {
+    // The foot of the band, under every session and break alike.
+    ctx.fillRect(x, top + band - 2, w, bottom - top - band + 2);
+  }
+  smoothed.forEach((sm) => {
+    const pts = graphPoints(sm, rect, scale).map(([, y], i): [number, number] => [graphX(data, rect, sm[i].t), y]);
+    ctx.beginPath();
+    ctx.moveTo(pts[0][0], bottom);
+    if (cuts.length > 1 || data.sessions.length > 1) ctx.lineTo(pts[0][0], top + band);
+    tracePath(ctx, pts, false);
+    if (cuts.length > 1 || data.sessions.length > 1) ctx.lineTo(pts[pts.length - 1][0], top + band);
+    ctx.lineTo(pts[pts.length - 1][0], bottom);
+    ctx.closePath();
+    ctx.fill();
+  });
 }
 
 export const editorial: CardDesign = {
@@ -396,7 +417,7 @@ export const editorial: CardDesign = {
     const capY = box.y + 58;
     const issueW = caps(ctx, L.copy.issue, right, capY, inner * 0.45, ink, 'right');
     const place = shortPlace(data);
-    caps(ctx, [`${data.weekday} ${data.fullDate}`, place].filter(Boolean).join(' · '), x0, capY, inner - issueW - 32, ink);
+    caps(ctx, [`${data.weekday} ${data.fullDate}`, data.sessionsText, place].filter(Boolean).join(' · '), x0, capY, inner - issueW - 32, ink);
 
     // Masthead.
     setFont(ctx, { family: SERIF, weight: 400, size: L.mast.size });
@@ -445,7 +466,7 @@ export const editorial: CardDesign = {
     // Cover art: the heart-rate silhouette in ink; the story and mark print out of it.
     const bottom = box.y + L.h;
     const onArt = L.art ? paper : ink;
-    if (L.art) drawSilhouette(ctx, data.hrSeries, box.x, box.w, box.y + L.bandTop, L.band, bottom, ink);
+    if (L.art) drawSilhouette(ctx, data, box.x, box.w, box.y + L.bandTop, L.band, bottom, ink);
     if (L.storyLines.length) {
       let y = box.y + L.storyTop + CAP;
       caps(ctx, 'Cover story', x0, y, inner, rgba(onArt, 0.8));

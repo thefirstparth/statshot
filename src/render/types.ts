@@ -50,6 +50,16 @@ export type ZoneMinutes = {
   maxHr: number;
 };
 
+/** One recorded session, for cards that show sessions separately (Day dial, Receipt). */
+export type SessionInfo = {
+  startMin: number; // minutes after the first session's midnight (can pass 1440 after midnight)
+  durationSec: number;
+  /** Where this session starts on hrSeries' clock (active time: breaks between sessions removed). */
+  activeStart: number;
+  startText: string;
+  endText: string;
+};
+
 export type CardData = {
   title: string;
   sportName: string; // "Table tennis"
@@ -66,7 +76,14 @@ export type CardData = {
   sportColors: { bg: string; fg: string; strong: string };
   location: string; // "" when not set
   stats: Partial<Record<StatKey, StatItem>>;
-  hrSeries: HrSample[]; // downsampled + smoothed
+  /** Downsampled + smoothed, on active time: with several sessions the breaks are cut out. */
+  hrSeries: HrSample[];
+  /** hrSeries times where a new session starts (empty for a single session). Graphs leave a gap there. */
+  breaks: number[];
+  /** Always at least one. */
+  sessions: SessionInfo[];
+  /** "2 sessions" when several were combined, else "". Cards print it once, beside the date. */
+  sessionsText: string;
   durationSec: number;
   avgHr: number | null;
   maxHr: number | null;

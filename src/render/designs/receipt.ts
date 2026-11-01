@@ -2,7 +2,8 @@ import { drawLogoGlyph, ellipsize, rgba, seededRandom, setFont, visibleStats } f
 import { measureContext } from '../env';
 import { MONO } from '../font-faces';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { zoneItems } from '../zone-graph';
+import { formatMinutes } from '../../tcx/stats';
+import { sessionCuts, unmeasuredMinutes, zoneItems } from '../zone-graph';
 import { meanBpm } from './editorial';
 import { shortPlace } from './shared';
 
@@ -48,6 +49,9 @@ function lines(data: CardData, opts: CardOptions) {
     .map((s) => ({ label: s.label.toUpperCase(), value: s.value }));
   const sub: Row[] = energy && has('duration') ? [{ label: 'SUBTOTAL', value: duration.value }] : [];
   const zones = zoneItems(data, 'light').map((z) => ({ label: z.name.toUpperCase(), value: z.text }));
+  // Time without heart rate is on the order too, so the items add up to the subtotal.
+  const missing = unmeasuredMinutes(data);
+  if (zones.length && missing) zones.push({ label: 'NO HEART RATE', value: formatMinutes(missing) });
   // Zone times are the order; without zones the stats are.
   const items = keep(zones.length ? zones : others);
   const tail = keep(zones.length ? [...sub, ...others] : sub);
@@ -95,16 +99,38 @@ function fitTitle(ctx: Ctx, title: string, maxW: number): { lines: string[]; siz
  * The heart-rate "barcode": one bar per time slice, its height the slice's average heart rate
  * between the session's lowest and highest slice. Empty without heart rate.
  */
-function hrBars(data: CardData): number[] {
+function hrBars(data: CardData): (number | null)[] {
   const s = data.hrSeries;
   if (s.length < 2) return [];
-  const lastT = s[s.length - 1].t;
-  const end = lastT >= data.durationSec - 180 ? data.durationSec : lastT;
-  const n = Math.max(60, Math.min(90, Math.round(end / 120)));
-  const avgs = Array.from({ length: n }, (_, i) => meanBpm(s, (i * end) / n, ((i + 1) * end) / n));
-  const lo = Math.min(...avgs);
-  const hi = Math.max(...avgs);
-  return avgs.map((v) => (hi - lo < 1 ? 0.6 : 0.16 + (0.84 * (v - lo)) / (hi - lo)));
+  if (data.sessions.length === 1) {
+    const lastT = s[s.length - 1].t;
+    const end = lastT >= data.durationSec - 180 ? data.durationSec : lastT;
+    const n = Math.max(60, Math.min(90, Math.round(end / 120)));
+    return scaleBars(Array.from({ length: n }, (_, i) => meanBpm(s, (i * end) / n, ((i + 1) * end) / n)));
+  }
+  // Several sessions: each gets its share of the bars from its own samples, with a blank between
+  // sessions, so no bar ever mixes two sessions. Sessions without heart rate get no bars.
+  const n = Math.max(60, Math.min(90, Math.round(data.durationSec / 120)));
+  const cuts = sessionCuts(data);
+  const out: (number | null)[] = [];
+  data.sessions.forEach((sess, k) => {
+    const part = s.slice(cuts[k][0], cuts[k][1]);
+    if (part.length < 2) return;
+    if (out.length) out.push(null, null);
+    const from = part[0].t;
+    const to = part[part.length - 1].t;
+    const m = Math.max(4, Math.round((n * sess.durationSec) / data.durationSec));
+    for (let i = 0; i < m; i++) out.push(meanBpm(part, from + (i * (to - from)) / m, from + ((i + 1) * (to - from)) / m));
+  });
+  return scaleBars(out);
+}
+
+/** Bar heights (0.16–1) between the lowest and highest slice; blanks stay blank. */
+function scaleBars(avgs: (number | null)[]): (number | null)[] {
+  const vals = avgs.filter((v): v is number => v !== null);
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  return avgs.map((v) => (v === null ? null : hi - lo < 1 ? 0.6 : 0.16 + (0.84 * (v - lo)) / (hi - lo)));
 }
 
 function layout(width: number, data: CardData, opts: CardOptions) {
@@ -136,13 +162,27 @@ function layout(width: number, data: CardData, opts: CardOptions) {
   const totalY = dbl1 + 16 + 16 + TOTAL * 0.78;
   const dbl2 = totalY + 32;
   const servedY = dbl2 + 16 + 54;
-  y = servedY;
+  // One SERVED line per session ("2 sessions" needs no extra label: the lines say it).
+  const served = servedLines(data);
+  y = servedY + (served.length - 1) * SERVED * 1.6;
   const bars = opts.showGraph ? hrBars(data) : [];
   const codeTop = bars.length ? y + 44 : 0;
   if (bars.length) y = codeTop + CODE_H + 18 + CAPTION * 0.8;
   const thanksY = y + 54;
   const h = thanksY + 64 + EDGE;
-  return { ...L, title, brandY, titleY, dateY, place, placeY, rule1, headY, itemsY, rule2, tailY, dbl1, totalY, dbl2, servedY, bars, codeTop, thanksY, h };
+  return { ...L, title, brandY, titleY, dateY, place, placeY, rule1, headY, itemsY, rule2, tailY, dbl1, totalY, dbl2, servedY, served, bars, codeTop, thanksY, h };
+}
+
+/** "SERVED 1:11–4:04 AM", one per session. */
+function servedLines(data: CardData): string[] {
+  if (data.sessions.length < 2) return [`SERVED ${data.stats.timeRange?.value ?? data.timeText}`.toUpperCase()];
+  return data.sessions.map((s) => `SERVED ${compactRange(s.startText, s.endText)}`.toUpperCase());
+}
+
+/** "6:00–7:10 PM" rather than "6:00 PM–7:10 PM" when both halves share the suffix. */
+function compactRange(a: string, b: string): string {
+  const sa = a.slice(-2);
+  return /[AP]M$/.test(a) && sa === b.slice(-2) ? `${a.slice(0, -3)}–${b}` : `${a}–${b}`;
 }
 
 /** Deterministic jagged edge points along y = 0 (top) for width w. */
@@ -319,7 +359,7 @@ export const receipt: CardDesign = {
     doubleRule(ctx, left, Y(L.dbl2), inner);
 
     // The times, once.
-    tracked(ctx, `SERVED ${data.stats.timeRange?.value ?? data.timeText}`.toUpperCase(), cx, Y(L.servedY), SERVED, 400, INK, 'center', inner);
+    L.served.forEach((line, i) => tracked(ctx, line, cx, Y(L.servedY + i * SERVED * 1.6), SERVED, 400, INK, 'center', inner));
 
     // Heart-rate barcode: thin bars on a midline, one per time slice.
     if (L.bars.length) {
@@ -331,6 +371,7 @@ export const receipt: CardDesign = {
       const mid = Y(L.codeTop) + CODE_H / 2;
       ctx.fillStyle = INK;
       L.bars.forEach((v, i) => {
+        if (v === null) return;
         const bh = Math.round(CODE_H * v);
         ctx.fillRect(Math.round(x0 + i * pitch + (pitch - bw) / 2), Math.round(mid - bh / 2), bw, bh);
       });

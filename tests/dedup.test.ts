@@ -6,7 +6,8 @@ import { DESIGNS, resolveAccent } from '../src/render/registry';
 import type { CardData, CardDesign, CardOptions, StatKey } from '../src/render/types';
 import { sportById } from '../src/sports';
 import { parseTcx } from '../src/tcx/parse';
-import { fixture } from './helpers';
+import { combineSessions } from '../src/tcx/merge';
+import { fixture, session } from './helpers';
 
 /** Draws a card into a context that records every string it prints. */
 function drawnText(design: CardDesign, data: CardData, opts: CardOptions): string[] {
@@ -51,20 +52,41 @@ const STAT_SETS: StatKey[][] = [
 describe('no value is printed twice on a card', () => {
   const r = parseTcx(fixture('synthetic-basic.tcx'));
   if (!r.ok) throw new Error(r.error);
-  for (const hour12 of [false, true]) {
-    const data = buildCardData({ workout: r.workouts[0], sport: sportById('table-tennis'), title: '', location: '', hour12, distanceUnit: 'km', age: 30, restingHr: 62, maxHrOverride: null });
+  // One session, then the same day played as two and three separate sessions.
+  const wave = (base: number) => (t: number) => base + 25 * Math.sin(t / 240);
+  const days = [
+    { name: '1 session', workout: r.workouts[0] },
+    { name: '2 sessions', workout: combineSessions([session('2026-10-31T18:02:00+05:30', 52, wave(118)), session('2026-10-31T21:15:00+05:30', 38, wave(132))]) },
+    {
+      name: '3 sessions',
+      workout: combineSessions([
+        session('2026-10-31T07:10:00+05:30', 25, wave(110)),
+        session('2026-10-31T18:00:00+05:30', 60, wave(125)),
+        session('2026-11-01T00:40:00+05:30', 45, wave(140)),
+      ]),
+    },
+    { name: '2 sessions, one without heart rate', workout: combineSessions([session('2026-10-31T18:02:00+05:30', 52, wave(118)), session('2026-10-31T23:00:00+05:30', 25, null, 150)]) }, // 25m: not equal to any other time on the card
+  ];
+  for (const [hour12, day] of [false, true].flatMap((h) => days.map((d) => [h, d] as const))) {
+    const data = buildCardData({ workout: day.workout, sport: sportById('table-tennis'), title: '', location: '', hour12, distanceUnit: 'km', age: 30, restingHr: 62, maxHrOverride: null });
     for (const design of DESIGNS) {
       for (const stats of STAT_SETS) {
         const bigs: StatKey[] = design.supportsBigStat ? ['duration', 'energy', 'avgHr', 'maxHr'] : ['duration'];
         for (const bigStat of bigs) {
-          it(`${design.id} · ${stats.join('+')} · big ${bigStat} · ${hour12 ? '12h' : '24h'}`, async () => {
+          it(`${design.id} · ${day.name} · ${stats.join('+')} · big ${bigStat} · ${hour12 ? '12h' : '24h'}`, async () => {
             const opts: CardOptions = { theme: 'dark', background: 'solid', accent: resolveAccent(design, null), stats, showLogo: true, showGraph: true, bigStat };
             await prepareCard(design, data, opts);
             const texts = drawnText(design, data, opts);
             const tokens = new Set<string>([clock(data.timeText), clock(data.endTimeText), data.shortDate]);
+            if (data.sessionsText) tokens.add(data.sessionsText);
             for (const k of stats) {
               const s = data.stats[k];
               if (s && k !== 'timeRange') tokens.add(s.number);
+            }
+            // Several sessions: the card says so (Receipt by one SERVED line per session).
+            if (data.sessionsText) {
+              if (design.id === 'receipt') expect(texts.filter((t) => t.startsWith('SERVED')).length).toBe(data.sessions.length);
+              else expect(count(texts.map((t) => t.toLowerCase()), data.sessionsText), `drawn: ${JSON.stringify(texts)}`).toBe(1);
             }
             const repeated = [...tokens].filter((t) => count(texts, t) > 1);
             expect(repeated, `drawn: ${JSON.stringify(texts)}`).toEqual([]);

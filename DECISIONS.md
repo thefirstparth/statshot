@@ -85,3 +85,10 @@ Choices made where the build spec was silent or needed interpreting. Grouped by 
 - **Effort:** the zone stat is "Moderate or harder", in real time (moderate + vigorous + peak). Google-style zone minutes aren't shown, because next to the duration they read as a second, larger time.
 - **No repeats:** a card never prints the same value twice (start or end time, date, any stat number). If the time range is a stat, headers show only the date, and graph labels are dropped when the value is already on the card. `tests/dedup.test.ts` checks every design.
 - **Big number:** Hero and Poster print the stat chosen under "Big number" (Time, Energy, Avg HR, Peak HR, Distance), with a label above it.
+
+## Several sessions on one card
+
+- **Input:** several files at once (picker, drop, Android share), a file with several workouts, or "Add another session" later. A "Your sessions" sheet switches each one on or off. Everything is on by default; if that can't be combined, or the sports differ, only the first (or only the newly added) sessions start on.
+- **Rules:** start = earliest start, end = latest end. Duration, energy and distance add up (playing time, not the span). Heart rate is averaged over playing time (time-weighted), and zones use every sample with the breaks ignored.
+- **Refused:** sessions that overlap by more than a minute (two devices would double the energy), more than 24 h from first start to last end, more than 6 sessions. An identical file (same start and length) is listed once.
+- **Cards:** "N sessions" beside the date, once per card (Receipt: one SERVED line per session). Graphs run on playing time and split at each break with a dashed divider. Day dial and the Widgets clock draw one arc per session at its real time. Editorial's hourly copy is off for combined days, since hours there would span a break.

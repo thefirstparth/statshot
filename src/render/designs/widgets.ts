@@ -140,7 +140,7 @@ function drawTile(ctx: CanvasRenderingContext2D, t: Tile, x: number, y: number, 
     const wide = w > TILE;
     const size = wide ? NUM * 1.5 : NUM;
     drawIconPath(ctx, data.sportIcon, c.onHero, x + P, y + P, 68);
-    drawFitText(ctx, `${data.weekday} ${data.shortDate}`, x + w - P, y + P + TINY * 0.9, inner - 90, tiny, rgba(c.onHero, 0.75), 'right', 0.8);
+    drawFitText(ctx, [`${data.weekday} ${data.shortDate}`, data.sessionsText].filter(Boolean).join(' · '), x + w - P, y + P + TINY * 0.9, inner - 90, tiny, rgba(c.onHero, 0.75), 'right', 0.8);
     const b = bottomBaselines(y, TILE, size);
     const capSize = wide ? 34 : CAP;
     const capBase = wide ? b.cap - 2 : b.cap;
@@ -178,13 +178,16 @@ function drawTile(ctx: CanvasRenderingContext2D, t: Tile, x: number, y: number, 
     ctx.lineCap = 'round';
     ctx.stroke();
     const a = (m: number) => (m / 1440) * Math.PI * 2 - Math.PI / 2;
-    const mins = Math.min(Math.max(data.durationSec / 60, 20), 1439);
-    ctx.beginPath();
-    ctx.arc(cx, cy, r, a(data.startMin), a(data.startMin + mins));
-    ctx.strokeStyle = c.accent;
-    ctx.lineWidth = sw;
-    ctx.lineCap = 'round';
-    ctx.stroke();
+    // One arc per session, at its real time.
+    for (const sess of data.sessions) {
+      const mins = Math.min(Math.max(sess.durationSec / 60, data.sessions.length > 1 ? 12 : 20), 1439);
+      ctx.beginPath();
+      ctx.arc(cx, cy, r, a(sess.startMin), a(sess.startMin + mins));
+      ctx.strokeStyle = c.accent;
+      ctx.lineWidth = sw;
+      ctx.lineCap = 'round';
+      ctx.stroke();
+    }
     const part = partOfDay(data.startMin);
     setFont(ctx, tiny);
     const tw = ctx.measureText(part.name).width;
