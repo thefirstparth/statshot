@@ -365,8 +365,8 @@ export function App() {
   const exportBlocked = !data || (zonesLocked && !!design.needsZones);
   const opts = optsFor(design);
   const exportKey = data
-    ? JSON.stringify([design.id, opts, prefs.size, workout?.start.iso, sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride])
-    : '';
+    ? JSON.stringify([design.id, opts, prefs.size, parts?.map((w) => `${w.start.iso}/${w.durationSec}`), sportId, title, location, hour12, prefs.distanceUnit, prefs.age, prefs.restingHr, prefs.maxHrOverride])
+    : ''; // every session on the card is part of the key, so adding one never reuses an old image
   const filename = workout
     ? exportFilename(
         slugify(sport.id.startsWith('custom:') ? sport.name : sport.id),
