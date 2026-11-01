@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildCardData } from '../src/card-data';
-import { sessionCuts } from '../src/render/zone-graph';
+import { graphDomain, sessionCuts, unmeasuredMinutes } from '../src/render/zone-graph';
 import { sportById } from '../src/sports';
 import { combineProblem, combineSessions, ERR_OVERLAP, ERR_SPREAD, ERR_TOO_MANY, MAX_SESSIONS, uniqueSessions } from '../src/tcx/merge';
 import { parseTcx, type Workout } from '../src/tcx/parse';
@@ -107,6 +107,10 @@ describe('combining sessions', () => {
     const d = card(w);
     expect(d.sessions).toHaveLength(2);
     expect(d.hrSeries.every((p) => p.bpm === 120)).toBe(true);
+    // Zones only cover the 60 measured minutes; the other 30 are reported as "no heart rate".
+    expect(Math.round(unmeasuredMinutes(d))).toBe(30);
+    // The graph spans all 90 minutes, so the session without heart rate keeps its place.
+    expect(graphDomain(d)).toEqual({ t0: 0, t1: 90 * 60 });
   });
 
   it('leaves a single session untouched', () => {

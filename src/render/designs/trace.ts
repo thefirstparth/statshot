@@ -4,7 +4,7 @@ import { SANS } from '../font-faces';
 import { drawIconPath } from '../icons';
 import { accentInk } from '../palette';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { drawZoneLegend, drawZoneLine, zoneItems, type ZoneItem } from '../zone-graph';
+import { drawZoneLegend, graphDomain, drawZoneLine, zoneItems, type ZoneItem } from '../zone-graph';
 import { baseline, metaLine, showsStat, showsTimeStat } from './shared';
 
 type Ctx = CanvasRenderingContext2D;
@@ -82,9 +82,7 @@ function hourLabel(data: CardData, minOfDay: number): string {
  * `data.hrSeries`. Hours in the outer 6% are left out so one never reads as the start or end time.
  */
 export function hourTicks(data: CardData): { at: number; label: string }[] {
-  const s = data.hrSeries;
-  const t0 = s.length > 1 ? s[0].t : 0;
-  const t1 = s.length > 1 ? s[s.length - 1].t : data.durationSec;
+  const { t0, t1 } = graphDomain(data);
   const span = Math.max(1, t1 - t0);
   const out: { at: number; label: string }[] = [];
   // Per session, so with several sessions each hour sits where it happened on the active-time graph.

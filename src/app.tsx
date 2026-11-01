@@ -144,6 +144,7 @@ export function App() {
       return;
     }
     const w = combineSessions(sessions);
+    const mixed = new Set(sessions.map((x) => x.sourceSport)).size > 1;
     // Never open on a design that can't be saved yet (Zones before zones are set up).
     const max = resolveMaxHr(prefs.age, prefs.maxHrOverride);
     const zonesReady = prefs.restingHr !== null && max !== null && max > prefs.restingHr + 10;
@@ -154,7 +155,11 @@ export function App() {
     setTitle('');
     setLocation('');
     setFavOrder(prefs.favourites);
-    if (w.sourceSport === 'Running') {
+    if (mixed) {
+      // A ride and a run combined: no guess from the pace, just ask.
+      setSportId('workout');
+      setSheet('sport');
+    } else if (w.sourceSport === 'Running') {
       setSportId('running');
       setSheet(null);
     } else if (w.sourceSport === 'Biking') {
@@ -286,6 +291,19 @@ export function App() {
     window.addEventListener('popstate', onPop);
     return () => window.removeEventListener('popstate', onPop);
   }, [hasWorkout]);
+
+  // Phone Back on the home screen closes an open sheet (sessions, settings) instead of leaving.
+  const homeSheetOpen = !hasWorkout && sheet !== null;
+  useEffect(() => {
+    if (!homeSheetOpen) return;
+    history.pushState({ sweatshot: 'sheet' }, '');
+    const onPop = () => {
+      setSheet(null);
+      setPending(null);
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, [homeSheetOpen]);
 
   // Android share target: the service worker parks the shared file in the Cache API.
   useEffect(() => {

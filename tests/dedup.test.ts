@@ -65,6 +65,7 @@ describe('no value is printed twice on a card', () => {
         session('2026-11-01T00:40:00+05:30', 45, wave(140)),
       ]),
     },
+    { name: '2 sessions, one without heart rate', workout: combineSessions([session('2026-10-31T18:02:00+05:30', 52, wave(118)), session('2026-10-31T23:00:00+05:30', 25, null, 150)]) }, // 25m: not equal to any other time on the card
   ];
   for (const [hour12, day] of [false, true].flatMap((h) => days.map((d) => [h, d] as const))) {
     const data = buildCardData({ workout: day.workout, sport: sportById('table-tennis'), title: '', location: '', hour12, distanceUnit: 'km', age: 30, restingHr: 62, maxHrOverride: null });

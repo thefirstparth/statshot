@@ -72,7 +72,11 @@ export function SessionsSheet({
             onConfirm(selected);
           }}
         >
-          {selected.length > 1 ? `Combine ${selected.length} sessions · ${formatDuration(total)}` : 'Use this session'}
+          {selected.length > 1
+            ? `Combine ${selected.length} sessions · ${formatDuration(total)}`
+            : selected.length === 1
+              ? 'Use this session'
+              : 'Switch on a session'}
         </button>
       </div>
     </Sheet>

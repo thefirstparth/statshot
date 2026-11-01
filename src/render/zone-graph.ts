@@ -43,13 +43,14 @@ export type ZoneLineStyle = {
 export function drawZoneLine(ctx: Ctx, data: CardData, rect: Rect, opts: CardOptions, style: ZoneLineStyle): [number, number][] {
   const series = data.hrSeries;
   if (series.length < 2) return [];
-  const pts = graphPoints(series, rect, style.scale ?? seriesRange(series));
+  // y from graphPoints; x from the graph's domain, so a session without heart rate keeps its place.
+  const pts = graphPoints(series, rect, style.scale ?? seriesRange(series)).map(([, y], i): [number, number] => [graphX(data, rect, series[i].t), y]);
   const dark = opts.theme === 'dark';
   // Several sessions: one stretch of line per session, never a bridge across the break.
   const cuts = sessionCuts(data);
   const stretches = cuts.map(([a, b]) => [a, b] as const).filter(([a, b]) => b - a >= 2);
   for (const b of data.breaks) {
-    const x = graphX(series, rect, b);
+    const x = graphX(data, rect, b);
     ctx.save();
     ctx.setLineDash([6, 8]);
     ctx.strokeStyle = rgba(dark ? '#FFFFFF' : '#000000', dark ? 0.22 : 0.18);
@@ -122,11 +123,28 @@ export function sessionCuts(data: CardData): [number, number][] {
   return cuts;
 }
 
-/** x of series time `t` on a graph drawn with graphPoints(series, rect, …). */
-export function graphX(series: { t: number }[], rect: Rect, t: number): number {
-  const t0 = series[0].t;
-  const span = Math.max(1, series[series.length - 1].t - t0);
-  return rect.x + ((t - t0) / span) * rect.w;
+/**
+ * The stretch of hrSeries time a graph spans. One session: the samples' own span (as always).
+ * Several: all of the playing time, so breaks and sessions without heart rate sit where they belong.
+ */
+export function graphDomain(data: CardData): { t0: number; t1: number } {
+  const s = data.hrSeries;
+  if (data.sessions.length > 1 || s.length < 2) return { t0: 0, t1: Math.max(1, data.durationSec) };
+  return { t0: s[0].t, t1: s[s.length - 1].t };
+}
+
+/** x of series time `t` on a graph of `data` drawn into rect. */
+export function graphX(data: CardData, rect: Rect, t: number): number {
+  const { t0, t1 } = graphDomain(data);
+  return rect.x + ((t - t0) / Math.max(1, t1 - t0)) * rect.w;
+}
+
+/** Playing time without heart rate (a session with none, or a long dropout), in minutes; 0 if under 2. */
+export function unmeasuredMinutes(data: CardData): number {
+  const z = data.zones;
+  if (!z) return 0;
+  const gap = data.durationSec / 60 - (z.light + z.moderate + z.vigorous + z.peak);
+  return gap >= 2 ? gap : 0;
 }
 
 /**

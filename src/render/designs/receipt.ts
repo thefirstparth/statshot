@@ -2,7 +2,8 @@ import { drawLogoGlyph, ellipsize, rgba, seededRandom, setFont, visibleStats } f
 import { measureContext } from '../env';
 import { MONO } from '../font-faces';
 import type { CardData, CardDesign, CardOptions, Rect, StatItem } from '../types';
-import { zoneItems } from '../zone-graph';
+import { formatMinutes } from '../../tcx/stats';
+import { sessionCuts, unmeasuredMinutes, zoneItems } from '../zone-graph';
 import { meanBpm } from './editorial';
 import { shortPlace } from './shared';
 
@@ -48,6 +49,9 @@ function lines(data: CardData, opts: CardOptions) {
     .map((s) => ({ label: s.label.toUpperCase(), value: s.value }));
   const sub: Row[] = energy && has('duration') ? [{ label: 'SUBTOTAL', value: duration.value }] : [];
   const zones = zoneItems(data, 'light').map((z) => ({ label: z.name.toUpperCase(), value: z.text }));
+  // Time without heart rate is on the order too, so the items add up to the subtotal.
+  const missing = unmeasuredMinutes(data);
+  if (zones.length && missing) zones.push({ label: 'NO HEART RATE', value: formatMinutes(missing) });
   // Zone times are the order; without zones the stats are.
   const items = keep(zones.length ? zones : others);
   const tail = keep(zones.length ? [...sub, ...others] : sub);
@@ -95,16 +99,38 @@ function fitTitle(ctx: Ctx, title: string, maxW: number): { lines: string[]; siz
  * The heart-rate "barcode": one bar per time slice, its height the slice's average heart rate
  * between the session's lowest and highest slice. Empty without heart rate.
  */
-function hrBars(data: CardData): number[] {
+function hrBars(data: CardData): (number | null)[] {
   const s = data.hrSeries;
   if (s.length < 2) return [];
-  const lastT = s[s.length - 1].t;
-  const end = lastT >= data.durationSec - 180 ? data.durationSec : lastT;
-  const n = Math.max(60, Math.min(90, Math.round(end / 120)));
-  const avgs = Array.from({ length: n }, (_, i) => meanBpm(s, (i * end) / n, ((i + 1) * end) / n));
-  const lo = Math.min(...avgs);
-  const hi = Math.max(...avgs);
-  return avgs.map((v) => (hi - lo < 1 ? 0.6 : 0.16 + (0.84 * (v - lo)) / (hi - lo)));
+  if (data.sessions.length === 1) {
+    const lastT = s[s.length - 1].t;
+    const end = lastT >= data.durationSec - 180 ? data.durationSec : lastT;
+    const n = Math.max(60, Math.min(90, Math.round(end / 120)));
+    return scaleBars(Array.from({ length: n }, (_, i) => meanBpm(s, (i * end) / n, ((i + 1) * end) / n)));
+  }
+  // Several sessions: each gets its share of the bars from its own samples, with a blank between
+  // sessions, so no bar ever mixes two sessions. Sessions without heart rate get no bars.
+  const n = Math.max(60, Math.min(90, Math.round(data.durationSec / 120)));
+  const cuts = sessionCuts(data);
+  const out: (number | null)[] = [];
+  data.sessions.forEach((sess, k) => {
+    const part = s.slice(cuts[k][0], cuts[k][1]);
+    if (part.length < 2) return;
+    if (out.length) out.push(null, null);
+    const from = part[0].t;
+    const to = part[part.length - 1].t;
+    const m = Math.max(4, Math.round((n * sess.durationSec) / data.durationSec));
+    for (let i = 0; i < m; i++) out.push(meanBpm(part, from + (i * (to - from)) / m, from + ((i + 1) * (to - from)) / m));
+  });
+  return scaleBars(out);
+}
+
+/** Bar heights (0.16–1) between the lowest and highest slice; blanks stay blank. */
+function scaleBars(avgs: (number | null)[]): (number | null)[] {
+  const vals = avgs.filter((v): v is number => v !== null);
+  const lo = Math.min(...vals);
+  const hi = Math.max(...vals);
+  return avgs.map((v) => (v === null ? null : hi - lo < 1 ? 0.6 : 0.16 + (0.84 * (v - lo)) / (hi - lo)));
 }
 
 function layout(width: number, data: CardData, opts: CardOptions) {
@@ -345,6 +371,7 @@ export const receipt: CardDesign = {
       const mid = Y(L.codeTop) + CODE_H / 2;
       ctx.fillStyle = INK;
       L.bars.forEach((v, i) => {
+        if (v === null) return;
         const bh = Math.round(CODE_H * v);
         ctx.fillRect(Math.round(x0 + i * pitch + (pitch - bw) / 2), Math.round(mid - bh / 2), bw, bh);
       });
