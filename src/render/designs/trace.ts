@@ -87,10 +87,13 @@ export function hourTicks(data: CardData): { at: number; label: string }[] {
   const t1 = s.length > 1 ? s[s.length - 1].t : data.durationSec;
   const span = Math.max(1, t1 - t0);
   const out: { at: number; label: string }[] = [];
-  const endMin = data.startMin + data.durationSec / 60;
-  for (let m = Math.ceil((data.startMin + 1) / 60) * 60; m < endMin; m += 60) {
-    const at = ((m - data.startMin) * 60 - t0) / span;
-    if (at >= 0.06 && at <= 0.94) out.push({ at, label: hourLabel(data, m) });
+  // Per session, so with several sessions each hour sits where it happened on the active-time graph.
+  for (const sess of data.sessions) {
+    const endMin = sess.startMin + sess.durationSec / 60;
+    for (let m = Math.ceil((sess.startMin + 1) / 60) * 60; m < endMin; m += 60) {
+      const at = (sess.activeStart + (m - sess.startMin) * 60 - t0) / span;
+      if (at >= 0.06 && at <= 0.94) out.push({ at, label: hourLabel(data, m) });
+    }
   }
   return out;
 }

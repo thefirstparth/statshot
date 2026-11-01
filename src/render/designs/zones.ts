@@ -69,7 +69,7 @@ function layout(data: CardData, opts: CardOptions) {
 
 /** "Sat 31 Oct · 1:11 AM–4:04 AM", plus the place when it fits without shrinking. */
 function headerLine(ctx: CanvasRenderingContext2D, data: CardData, maxW: number): string {
-  const base = `${data.weekday} ${data.shortDate} · ${data.stats.timeRange?.value ?? data.timeText}`;
+  const base = [`${data.weekday} ${data.shortDate}`, data.sessionsText, data.stats.timeRange?.value ?? data.timeText].filter(Boolean).join(' · ');
   const place = shortPlace(data);
   if (!place) return base;
   const withPlace = `${base} · ${place}`;

@@ -31,12 +31,13 @@ import {
 } from './state/store';
 import { sampleWorkout } from './sample';
 import { slugify, sportById } from './sports';
+import { combineProblem, combineSessions, NOTE_DUPLICATE, uniqueSessions } from './tcx/merge';
 import { NOTE_NO_HR, parseTcx, type Workout } from './tcx/parse';
 import { formatDuration, isoDate, resolveMaxHr } from './tcx/stats';
 import { Carousel } from './ui/carousel';
 import { EmptyState } from './ui/empty';
 import { Icon } from './ui/icon';
-import { DesignsSheet, EditSheet, PickWorkoutSheet, SettingsSheet, WorkoutSheet } from './ui/sheets';
+import { DesignsSheet, EditSheet, SessionsSheet, SettingsSheet, WorkoutSheet } from './ui/sheets';
 import { SportSheet } from './ui/sport-sheet';
 import { SportSticker } from './ui/sticker';
 
@@ -71,10 +72,13 @@ function useAppearance(appearance: Prefs['appearance']) {
 export function App() {
   const [prefs, setPrefs] = useState<Prefs>(loadPrefs);
   const [fontsReady, setFontsReady] = useState(false);
-  const [workouts, setWorkouts] = useState<Workout[] | null>(null);
-  const [workoutIdx, setWorkoutIdx] = useState<number | null>(null);
-  // A multi-workout file waiting for "Pick a workout"; the current workout stays until then.
-  const [pending, setPending] = useState<Workout[] | null>(null);
+  // The sessions on the card (one, or several combined) and every session loaded since the last
+  // fresh open, so "Choose sessions" can switch them on and off.
+  const [parts, setParts] = useState<Workout[] | null>(null);
+  const [pool, setPool] = useState<Workout[]>([]);
+  // Several sessions waiting in "Your sessions"; the current card stays until one is confirmed.
+  const [pending, setPending] = useState<{ sessions: Workout[]; on: boolean[]; duplicates: number; adding: boolean } | null>(null);
+  const fileMode = useRef<'open' | 'add'>('open');
   const [sportId, setSportId] = useState('workout');
   const [title, setTitle] = useState('');
   const [location, setLocation] = useState('');
@@ -104,7 +108,7 @@ export function App() {
   useEffect(() => {
     if (sheet) setToast(null);
   }, [sheet]);
-  useEffect(() => setToast(null), [prefs.designId, workouts]);
+  useEffect(() => setToast(null), [prefs.designId, parts]);
 
   useEffect(() => {
     if (!toast) return;
@@ -113,7 +117,7 @@ export function App() {
   }, [toast]);
 
   // Card fonts are only needed once there's a workout to draw, so home stays light on slow data.
-  const needFonts = workouts !== null || pending !== null;
+  const needFonts = parts !== null || pending !== null;
   useEffect(() => {
     if (!needFonts || fontsReady) return;
     let done = false;
@@ -130,8 +134,16 @@ export function App() {
 
   // ── Import ─────────────────────────────────────────────────────────────────
 
-  const selectWorkout = (list: Workout[], i: number) => {
-    const w = list[i];
+  /** Puts these sessions on the card. A fresh open also resets the title, place and sport. */
+  const openSessions = (sessions: Workout[], fresh: boolean, all: Workout[] = sessions) => {
+    setPending(null);
+    setParts(sessions);
+    setPool(all);
+    if (!fresh) {
+      setSheet(null);
+      return;
+    }
+    const w = combineSessions(sessions);
     // Never open on a design that can't be saved yet (Zones before zones are set up).
     const max = resolveMaxHr(prefs.age, prefs.maxHrOverride);
     const zonesReady = prefs.restingHr !== null && max !== null && max > prefs.restingHr + 10;
@@ -139,9 +151,6 @@ export function App() {
     if (!zonesReady && designById(prefs.designId).needsZones) {
       updatePrefs({ designId: prefs.favourites.find((id) => !designById(id).needsZones) ?? 'summary' });
     }
-    setWorkouts(list);
-    setPending(null);
-    setWorkoutIdx(i);
     setTitle('');
     setLocation('');
     setFavOrder(prefs.favourites);
@@ -159,38 +168,71 @@ export function App() {
     }
   };
 
-  const handleFile = async (file: Blob) => {
+  /**
+   * Several sessions on the table: let the person pick or combine. On by default: everything when
+   * opening fresh, or what's on the card plus the new sessions when adding; if that can't be one
+   * card (different days, an overlap), just the first / the new ones, and the sheet says why.
+   */
+  const offerSessions = (candidates: Workout[], adding: boolean) => {
+    const { sessions, duplicates } = uniqueSessions(candidates);
+    if (adding && sessions.length === uniqueSessions(pool).sessions.length) {
+      showToast(NOTE_DUPLICATE);
+      setSheet(null);
+      return;
+    }
+    if (sessions.length === 1) {
+      openSessions(sessions, !adding);
+      return;
+    }
+    const isNew = (w: Workout) => !pool.includes(w);
+    let on = sessions.map((w) => (adding ? (parts ?? []).includes(w) || isNew(w) : true));
+    // A file with a ride and a run isn't "the same sport twice": don't pre-tick a combination of those.
+    const mixed = new Set(sessions.filter((_, i) => on[i]).map((w) => w.sourceSport)).size > 1;
+    if (mixed || combineProblem(sessions.filter((_, i) => on[i])) !== null) {
+      on = adding ? sessions.map(isNew) : sessions.map((_, i) => i === 0);
+    }
+    setPending({ sessions, on, duplicates, adding });
+    setSheet('pick');
+  };
+
+  const handleFiles = async (files: Blob[], mode: 'open' | 'add') => {
+    const loaded: Workout[] = [];
     let failure: string | null = null;
-    let list: Workout[] | null = null;
-    if (file.size > MAX_FILE_BYTES) {
-      failure = ERR_TOO_BIG;
-    } else {
-      try {
-        const result = parseTcx(await file.text());
-        if (result.ok) list = result.workouts;
-        else failure = result.error;
-      } catch {
-        failure = ERR_READ;
+    for (const file of files) {
+      let error: string | null = null;
+      if (file.size > MAX_FILE_BYTES) {
+        error = ERR_TOO_BIG;
+      } else {
+        try {
+          const result = parseTcx(await file.text());
+          if (result.ok) loaded.push(...result.workouts);
+          else error = result.error;
+        } catch {
+          error = ERR_READ;
+        }
+      }
+      if (error) {
+        // With several files, say which one.
+        const name = files.length > 1 && 'name' in file ? (file as File).name : '';
+        failure = name ? `${name}: ${error}` : error;
+        break;
       }
     }
-    if (!list) {
+    if (failure || loaded.length === 0) {
       // Keep the current workout if one is loaded; just say what went wrong.
-      if (workouts && workoutIdx !== null) showToast(failure ?? ERR_READ);
-      else setError(failure);
+      if (parts) showToast(failure ?? ERR_READ);
+      else setError(failure ?? ERR_READ);
       return;
     }
     setError(null);
-    if (list.length > 1) {
-      setPending(list);
-      setSheet('pick');
-    } else {
-      selectWorkout(list, 0);
-    }
+    const adding = mode === 'add' && parts !== null;
+    offerSessions(adding ? [...pool, ...loaded] : loaded, adding);
   };
-  const handleFileRef = useRef(handleFile);
-  handleFileRef.current = handleFile;
+  const handleFileRef = useRef(handleFiles);
+  handleFileRef.current = handleFiles;
 
-  const openPicker = () => {
+  const openPicker = (mode: 'open' | 'add' = 'open') => {
+    fileMode.current = mode;
     setSheet(null);
     fileInput.current?.click();
   };
@@ -210,8 +252,8 @@ export function App() {
       if (!hasFiles(e)) return;
       e.preventDefault();
       setDragging(false);
-      const f = e.dataTransfer?.files[0];
-      if (f) handleFileRef.current(f);
+      const files = Array.from(e.dataTransfer?.files ?? []);
+      if (files.length) handleFileRef.current(files, 'open');
     };
     window.addEventListener('dragover', over);
     window.addEventListener('dragenter', over);
@@ -226,7 +268,7 @@ export function App() {
   }, []);
 
   // Phone Back: close the open sheet, else step back from the editor to home, instead of leaving.
-  const hasWorkout = workouts !== null && workoutIdx !== null;
+  const hasWorkout = parts !== null;
   const backRef = useRef({ sheet, hasWorkout });
   backRef.current = { sheet, hasWorkout };
   useEffect(() => {
@@ -238,8 +280,7 @@ export function App() {
         setSheet(null);
         history.pushState({ sweatshot: 'editor' }, '');
       } else {
-        setWorkouts(null);
-        setWorkoutIdx(null);
+        setParts(null);
       }
     };
     window.addEventListener('popstate', onPop);
@@ -258,15 +299,20 @@ export function App() {
     if (!('caches' in window)) return;
     (async () => {
       const cache = await caches.open(SHARE_CACHE);
-      const res = await cache.match('/shared-file');
+      const keys = (await cache.keys()).filter((r) => new URL(r.url).pathname.startsWith('/shared-file'));
+      const blobs: Blob[] = [];
+      for (const k of keys.sort((a, b) => a.url.localeCompare(b.url, undefined, { numeric: true }))) {
+        const res = await cache.match(k);
+        if (res) blobs.push(await res.blob());
+      }
       await caches.delete(SHARE_CACHE);
-      if (res) handleFileRef.current(await res.blob());
+      if (blobs.length) handleFileRef.current(blobs, 'open');
     })().catch(() => setError(ERR_READ));
   }, []);
 
   // ── Derived card data ──────────────────────────────────────────────────────
 
-  const workout = workouts && workoutIdx !== null ? workouts[workoutIdx] : null;
+  const workout = useMemo(() => (parts ? combineSessions(parts) : null), [parts]);
   const sport = sportById(sportId);
   const hour12 = prefs.hour12 ?? localeHour12();
   const data = useMemo(
@@ -434,21 +480,22 @@ export function App() {
     <input
       ref={fileInput}
       type="file"
+      multiple
       class="visually-hidden"
       tabIndex={-1}
       aria-hidden="true"
       onChange={(e) => {
         const input = e.currentTarget as HTMLInputElement;
-        const f = input.files?.[0];
+        const files = Array.from(input.files ?? []);
         input.value = '';
-        if (f) handleFile(f);
+        if (files.length) handleFiles(files, fileMode.current);
       }}
     />
   );
 
   const onSample = () => {
     setError(null);
-    selectWorkout([sampleWorkout()], 0);
+    openSessions([sampleWorkout()], true);
     setSportId('pickleball');
     setTitle('Sample pickleball');
     setSheet(null);
@@ -467,16 +514,18 @@ export function App() {
   const dropOverlay = dragging && (
     <div class="drop-overlay" aria-hidden="true">
       <Icon name="upload_file" class="icon-lg" />
-      <p>Drop your workout file</p>
+      <p>Drop your workout files</p>
     </div>
   );
 
-  const pickList = pending ?? workouts;
-  const pickSheet = sheet === 'pick' && pickList && (
-    <PickWorkoutSheet
-      workouts={pickList}
+  const pickSheet = sheet === 'pick' && pending && (
+    <SessionsSheet
+      key={pending.sessions.map((w) => w.start.iso).join()}
+      sessions={pending.sessions}
+      initial={pending.on}
+      duplicates={pending.duplicates}
       hour12={hour12}
-      onPick={(i) => selectWorkout(pickList, i)}
+      onConfirm={(selected) => openSessions(selected, !pending.adding, pending.sessions)}
       onClose={() => {
         setSheet(null);
         setPending(null);
@@ -522,11 +571,11 @@ export function App() {
     />
   );
 
-  if (!workouts || !data || !workout) {
+  if (!parts || !data || !workout) {
     return (
       <>
         <div inert={sheet !== null}>
-          <EmptyState error={error} onImport={openPicker} onSample={onSample} onSettings={() => setSheet('settings')} />
+          <EmptyState error={error} onImport={() => openPicker('open')} onSample={onSample} onSettings={() => setSheet('settings')} />
         </div>
         {fileInputEl}
         {pickSheet}
@@ -677,15 +726,21 @@ export function App() {
           sport={sport}
           title={title}
           location={location}
-          canPickAnother={workouts.length > 1}
+          sessionsText={data.sessionsText}
+          canChooseSessions={pool.length > 1}
           onChangeSport={() => {
             designsFrom.current = 'workout';
             setSheet('sport');
           }}
           onTitle={setTitle}
           onLocation={setLocation}
-          onPickAnother={() => setSheet('pick')}
-          onImport={openPicker}
+          onChooseSessions={() => {
+            const { sessions } = uniqueSessions(pool);
+            setPending({ sessions, on: sessions.map((w) => parts.includes(w)), duplicates: 0, adding: true });
+            setSheet('pick');
+          }}
+          onAddSession={() => openPicker('add')}
+          onImport={() => openPicker('open')}
           onClose={() => setSheet(null)}
         />
       )}

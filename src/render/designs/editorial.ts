@@ -173,7 +173,9 @@ export function editorialCopy(data: CardData, opts: CardOptions): EditorialCopy 
   const fresh = (vals: string[]) => vals.every((v) => !printed.has(v));
 
   let inside: InsideLine | null = null;
-  if (data.hrSeries.length >= 2) {
+  // Hours and halves are measured on playing time, so across a break between sessions they'd
+  // describe stretches that never happened in one go: no Inside line for combined sessions.
+  if (data.hrSeries.length >= 2 && data.sessions.length === 1) {
     const slices = hourSlices(data.hrSeries, data.durationSec);
     for (const c of [climbLine(slices), hardestLine(slices), halvesLine(data.hrSeries, data.durationSec)]) {
       if (c && fresh(c.nums)) {
@@ -396,7 +398,7 @@ export const editorial: CardDesign = {
     const capY = box.y + 58;
     const issueW = caps(ctx, L.copy.issue, right, capY, inner * 0.45, ink, 'right');
     const place = shortPlace(data);
-    caps(ctx, [`${data.weekday} ${data.fullDate}`, place].filter(Boolean).join(' · '), x0, capY, inner - issueW - 32, ink);
+    caps(ctx, [`${data.weekday} ${data.fullDate}`, data.sessionsText, place].filter(Boolean).join(' · '), x0, capY, inner - issueW - 32, ink);
 
     // Masthead.
     setFont(ctx, { family: SERIF, weight: 400, size: L.mast.size });

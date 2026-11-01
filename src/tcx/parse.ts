@@ -23,7 +23,12 @@ export type Workout = {
   /** Lap summary values, used only when the file has no per-sample heart rate. */
   lapAvgHr: number | null;
   lapMaxHr: number | null;
+  /** Set only when several recorded sessions were combined (see merge.ts); hr then uses one clock. */
+  sessions?: Session[];
 };
+
+/** One recorded session inside a combined workout, in real seconds from the first start. */
+export type Session = { offsetSec: number; durationSec: number };
 
 export type ParseResult =
   | { ok: true; workouts: Workout[] }

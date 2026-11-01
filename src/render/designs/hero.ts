@@ -75,7 +75,7 @@ function header(ctx: Ctx, data: CardData, tw: number) {
     }
   }
   const range = data.stats.timeRange?.value ?? data.timeText;
-  const when = `${data.weekday} ${data.shortDate} · ${range}`;
+  const when = [`${data.weekday} ${data.shortDate}`, data.sessionsText, range].filter(Boolean).join(' · ');
   const place = shortPlace(data);
   const meta: string[] = [];
   setFont(ctx, FONT_SUB);

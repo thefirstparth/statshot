@@ -8,7 +8,8 @@ import { DESIGNS, resolveAccent } from '../src/render/registry';
 import type { CardData, CardOptions, SizeKey, StatKey } from '../src/render/types';
 import { sportById } from '../src/sports';
 import { parseTcx, type Workout } from '../src/tcx/parse';
-import { fixture } from './helpers';
+import { combineSessions } from '../src/tcx/merge';
+import { fixture, session } from './helpers';
 
 const SIZES: SizeKey[] = ['story', 'sticker'];
 const THEMES = ['light', 'dark'] as const;
@@ -138,6 +139,28 @@ describe('render', () => {
       const opts = options(['duration', 'energy', 'avgHr', 'maxHr'], { accent: resolveAccent(design, null) });
       await prepareCard(design, long, opts);
       save(renderToNewCanvas(design, long, opts, 'sticker'), `long-${design.id}`);
+    }
+  });
+
+  it('renders every design for a day of combined sessions', async () => {
+    const day = combineSessions([
+      session('2026-10-31T07:10:00+05:30', 25, (t) => 110 + 20 * Math.sin(t / 200)),
+      session('2026-10-31T18:00:00+05:30', 60, (t) => 125 + 25 * Math.sin(t / 240)),
+      session('2026-11-01T00:40:00+05:30', 45, null, 300),
+    ]);
+    const data = cardData(day);
+    expect(data.sessions).toHaveLength(3);
+    for (const design of DESIGNS) {
+      for (const theme of THEMES) {
+        for (const size of SIZES) {
+          const opts = options(['duration', 'energy', 'avgHr', 'zoneMin', 'timeRange'], { theme, background: 'solid', accent: resolveAccent(design, null) });
+          await prepareCard(design, data, opts);
+          const canvas = renderToNewCanvas(design, data, opts, size);
+          const layout = canvasLayout(design, data, opts, size);
+          expect(hasInk(canvas, { x: layout.x, y: layout.y, w: Math.floor(layout.box.w * layout.scale), h: Math.floor(layout.box.h * layout.scale) })).toBe(true);
+          save(canvas, `sessions-${design.id}-${theme}-${size}`);
+        }
+      }
     }
   });
 

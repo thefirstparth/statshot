@@ -85,6 +85,7 @@ export function EmptyState({ error, onImport, onSample, onSettings }: Props) {
             <li>Tap ⋯, then Export.</li>
             <li>Save it to Files, then open it here with “Open workout file”.</li>
           </ol>
+          <p class="howto-note">Played more than once that day? Export each session and pick all the files together: they become one card.</p>
           <p class="howto-note">On Android you can also share the file straight to Sweatshot once it’s installed.</p>
         </details>
       </section>

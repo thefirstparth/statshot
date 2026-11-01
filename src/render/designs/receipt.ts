@@ -136,13 +136,27 @@ function layout(width: number, data: CardData, opts: CardOptions) {
   const totalY = dbl1 + 16 + 16 + TOTAL * 0.78;
   const dbl2 = totalY + 32;
   const servedY = dbl2 + 16 + 54;
-  y = servedY;
+  // One SERVED line per session ("2 sessions" needs no extra label: the lines say it).
+  const served = servedLines(data);
+  y = servedY + (served.length - 1) * SERVED * 1.6;
   const bars = opts.showGraph ? hrBars(data) : [];
   const codeTop = bars.length ? y + 44 : 0;
   if (bars.length) y = codeTop + CODE_H + 18 + CAPTION * 0.8;
   const thanksY = y + 54;
   const h = thanksY + 64 + EDGE;
-  return { ...L, title, brandY, titleY, dateY, place, placeY, rule1, headY, itemsY, rule2, tailY, dbl1, totalY, dbl2, servedY, bars, codeTop, thanksY, h };
+  return { ...L, title, brandY, titleY, dateY, place, placeY, rule1, headY, itemsY, rule2, tailY, dbl1, totalY, dbl2, servedY, served, bars, codeTop, thanksY, h };
+}
+
+/** "SERVED 1:11–4:04 AM", one per session. */
+function servedLines(data: CardData): string[] {
+  if (data.sessions.length < 2) return [`SERVED ${data.stats.timeRange?.value ?? data.timeText}`.toUpperCase()];
+  return data.sessions.map((s) => `SERVED ${compactRange(s.startText, s.endText)}`.toUpperCase());
+}
+
+/** "6:00–7:10 PM" rather than "6:00 PM–7:10 PM" when both halves share the suffix. */
+function compactRange(a: string, b: string): string {
+  const sa = a.slice(-2);
+  return /[AP]M$/.test(a) && sa === b.slice(-2) ? `${a.slice(0, -3)}–${b}` : `${a}–${b}`;
 }
 
 /** Deterministic jagged edge points along y = 0 (top) for width w. */
@@ -319,7 +333,7 @@ export const receipt: CardDesign = {
     doubleRule(ctx, left, Y(L.dbl2), inner);
 
     // The times, once.
-    tracked(ctx, `SERVED ${data.stats.timeRange?.value ?? data.timeText}`.toUpperCase(), cx, Y(L.servedY), SERVED, 400, INK, 'center', inner);
+    L.served.forEach((line, i) => tracked(ctx, line, cx, Y(L.servedY + i * SERVED * 1.6), SERVED, 400, INK, 'center', inner));
 
     // Heart-rate barcode: thin bars on a midline, one per time slice.
     if (L.bars.length) {

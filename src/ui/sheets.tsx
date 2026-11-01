@@ -6,6 +6,7 @@ import { prepareCard, releaseCanvas, renderThumb } from '../render/render';
 import { MAX_STATS, STAT_ORDER, type CardData, type CardDesign, type CardOptions, type SizeKey, type StatKey } from '../render/types';
 import type { Sport } from '../sports';
 import { BIG_STATS, MAX_FAVOURITES, type Appearance, type Prefs } from '../state/store';
+import { combineProblem } from '../tcx/merge';
 import type { Workout } from '../tcx/parse';
 import { formatDuration, formatLongDate, formatTime, resolveMaxHr } from '../tcx/stats';
 import { NumberField, Segmented, Swatches, Toggle } from './controls';
@@ -13,37 +14,67 @@ import { Icon } from './icon';
 import { Sheet } from './sheet';
 import { SportSticker } from './sticker';
 
-// ── Pick a workout (files with several activities) ───────────────────────────
+// ── Sessions (several workouts: pick one, or combine them) ─────────────────────
 
-export function PickWorkoutSheet({
-  workouts,
+export function SessionsSheet({
+  sessions,
+  initial,
+  duplicates,
   hour12,
-  onPick,
+  onConfirm,
   onClose,
 }: {
-  workouts: Workout[];
+  sessions: Workout[]; // sorted, unique
+  initial: boolean[];
+  duplicates: number;
   hour12: boolean;
-  onPick: (index: number) => void;
+  onConfirm: (selected: Workout[]) => void;
   onClose: () => void;
 }) {
+  const [on, setOn] = useState<boolean[]>(initial);
+  const selected = sessions.filter((_, i) => on[i]);
+  const problem = selected.length > 1 ? combineProblem(selected) : null;
+  const total = selected.reduce((a, w) => a + w.durationSec, 0);
   return (
-    <Sheet title="Pick a workout" onClose={onClose}>
-      <ul class="list">
-        {workouts.map((w, i) => (
-          <li key={w.start.iso + i}>
-            <button type="button" class="list-item" onClick={() => onPick(i)} data-autofocus={i === 0 ? true : undefined}>
-              <span class="list-main">
-                <span class="list-title">{formatLongDate(w.start)}</span>
-                <span class="list-sub">
-                  {formatTime(w.start, hour12)} · {formatDuration(w.durationSec)}
-                  {w.sourceSport !== 'Other' ? ` · ${w.sourceSport === 'Biking' ? 'Cycling' : 'Running'}` : ''}
-                </span>
-              </span>
-              <Icon name="chevron_right" />
-            </button>
-          </li>
+    <Sheet title="Your sessions" onClose={onClose}>
+      <p class="field-help">
+        Played more than once? Keep several switched on and they become one card: durations and energy add up, and
+        the card says how many sessions.
+      </p>
+      <div class="toggle-list">
+        {sessions.map((w, i) => (
+          <Toggle
+            key={w.start.iso + i}
+            label={`${formatLongDate(w.start)}, ${formatTime(w.start, hour12)}`}
+            hint={`${formatDuration(w.durationSec)}${w.calories !== null ? ` · ${Math.round(w.calories)} kcal` : ''}${
+              w.sourceSport !== 'Other' ? ` · ${w.sourceSport === 'Biking' ? 'Cycling' : 'Running'}` : ''
+            }`}
+            checked={!!on[i]}
+            onChange={(v) => setOn((prev) => prev.map((x, j) => (j === i ? v : x)))}
+          />
         ))}
-      </ul>
+      </div>
+      {duplicates > 0 && (
+        <p class="field-help">
+          {duplicates === 1 ? 'One session was already added, so it' : `${duplicates} sessions were already added, so they`} {duplicates === 1 ? 'is' : 'are'} listed once.
+        </p>
+      )}
+      <p class="field-error" role="status" aria-live="polite">
+        {problem ?? (selected.length === 0 ? 'Switch on at least one session.' : '')}
+      </p>
+      <div class="sheet-actions">
+        <button
+          type="button"
+          class="btn btn-primary"
+          aria-disabled={selected.length === 0 || !!problem}
+          onClick={() => {
+            if (selected.length === 0 || problem) return;
+            onConfirm(selected);
+          }}
+        >
+          {selected.length > 1 ? `Combine ${selected.length} sessions · ${formatDuration(total)}` : 'Use this session'}
+        </button>
+      </div>
     </Sheet>
   );
 }
@@ -54,22 +85,26 @@ export function WorkoutSheet({
   sport,
   title,
   location,
-  canPickAnother,
+  sessionsText,
+  canChooseSessions,
   onChangeSport,
   onTitle,
   onLocation,
-  onPickAnother,
+  onChooseSessions,
+  onAddSession,
   onImport,
   onClose,
 }: {
   sport: Sport;
   title: string;
   location: string;
-  canPickAnother: boolean;
+  sessionsText: string; // "" for one session
+  canChooseSessions: boolean;
   onChangeSport: () => void;
   onTitle: (t: string) => void;
   onLocation: (t: string) => void;
-  onPickAnother: () => void;
+  onChooseSessions: () => void;
+  onAddSession: () => void;
   onImport: () => void;
   onClose: () => void;
 }) {
@@ -114,9 +149,13 @@ export function WorkoutSheet({
         />
       </div>
       <div class="sheet-actions">
-        {canPickAnother && (
-          <button type="button" class="btn btn-secondary" onClick={onPickAnother}>
-            Pick another workout from this file
+        <button type="button" class="btn btn-secondary" onClick={onAddSession}>
+          <Icon name="add" />
+          Add another session
+        </button>
+        {canChooseSessions && (
+          <button type="button" class="btn btn-secondary" onClick={onChooseSessions}>
+            Choose sessions{sessionsText ? ` · ${sessionsText}` : ''}
           </button>
         )}
         <button type="button" class="btn btn-secondary" onClick={onImport}>
